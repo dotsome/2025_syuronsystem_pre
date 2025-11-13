@@ -1,0 +1,6 @@
+.env
+password.csv
+config.yaml
+beast_text.json
+zikken_result/
+streamlit_auth.py
