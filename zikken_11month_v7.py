@@ -526,10 +526,10 @@ Mermaid図:
     logger.debug(f"[Q{q_num}] Final Mermaid = {final_mermaid[:500]}")
 
     # ──────────────────────────
-    # Step 6: mermaid.ink APIでPNG生成
+    # Step 6: Kroki APIでSVG生成
     # ──────────────────────────
     mmd_path = Path(user_dir) / f"{st.session_state.user_name}_{st.session_state.user_number}_{q_num}.mmd"
-    png_path = mmd_path.with_suffix(".png")
+    svg_path = mmd_path.with_suffix(".svg")
 
     # Mermaidファイルを保存
     mmd_path.write_text(final_mermaid, encoding="utf-8")
@@ -548,29 +548,29 @@ Mermaid図:
     debug_path.write_text(debug_content, encoding="utf-8")
 
     try:
-        # mermaid.ink APIを使用してPNG生成
+        # Kroki APIを使用してSVG生成
         import base64
-        import urllib.parse
+        import zlib
         import requests
 
-        # MermaidコードをBase64エンコード
-        mermaid_bytes = final_mermaid.encode('utf-8')
-        mermaid_base64 = base64.b64encode(mermaid_bytes).decode('utf-8')
+        # MermaidコードをKroki形式でエンコード（zlib + base64）
+        compressed = zlib.compress(final_mermaid.encode('utf-8'), 9)
+        encoded = base64.urlsafe_b64encode(compressed).decode('utf-8')
 
-        # mermaid.ink APIのURL
-        api_url = f"https://mermaid.ink/img/{mermaid_base64}"
+        # Kroki APIのURL（SVG形式）
+        api_url = f"https://kroki.io/mermaid/svg/{encoded}"
 
-        # 画像をダウンロード
+        # SVG画像をダウンロード
         response = requests.get(api_url, timeout=30)
         response.raise_for_status()
 
-        # PNGファイルとして保存
-        png_path.write_bytes(response.content)
-        logger.info(f"[Q{q_num}] PNG generated successfully via mermaid.ink API")
-        return str(png_path)
+        # SVGファイルとして保存
+        svg_path.write_text(response.text, encoding="utf-8")
+        logger.info(f"[Q{q_num}] SVG generated successfully via Kroki API")
+        return str(svg_path)
 
     except Exception as e:
-        logger.exception(f"[Q{q_num}] Mermaid PNG generation failed")
+        logger.exception(f"[Q{q_num}] Mermaid SVG generation failed")
         st.warning("⚠️ Mermaid 図生成に失敗しました。生成されたコードを表示します。")
         st.code(final_mermaid, language="mermaid")
         st.error(f"エラー詳細: {str(e)}")
@@ -654,7 +654,7 @@ with right_col:
                         unsafe_allow_html=True)
                 elif item["type"] == "image" and Path(item["path"]).exists():
                     st.image(item["path"], caption=item["caption"],
-                             width='stretch')
+                             use_container_width=True)
 
 # =================================================
 #               ユーザー入力処理
@@ -678,19 +678,19 @@ if user_input:
     story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
 
     # 登場人物の関係図生成
-    png_file = None
+    svg_file = None
     if is_character_question(user_input):
         status_placeholder = st.empty()
         status_placeholder.info("💭 登場人物の関係図を生成中...")
-        png_file = generate_mermaid_file(user_input, story_text_so_far, q_num)
+        svg_file = generate_mermaid_file(user_input, story_text_so_far, q_num)
         status_placeholder.empty()
-        if png_file:
+        if svg_file:
             st.session_state.chat_history.append(
                 {"type": "image",
-                 "path": png_file,
+                 "path": svg_file,
                  "caption": f"登場人物関係図 (質問 #{q_num})"})
-            # 画像を表示
-            st.image(png_file, caption=f"登場人物関係図 (質問 #{q_num})", width='stretch')
+            # SVG画像を表示
+            st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", use_container_width=True)
 
     # 回答生成
     status_placeholder = st.empty()
