@@ -127,9 +127,18 @@ init_state("chat_history",     [])
 # Streamlit Cloud環境ではst.secretsから、ローカルではconfig.yamlから読み込む
 config = None
 
+def secrets_to_dict(secrets_obj):
+    """Streamlit Secretsオブジェクトを再帰的に通常の辞書に変換"""
+    if hasattr(secrets_obj, 'to_dict'):
+        return secrets_obj.to_dict()
+    elif isinstance(secrets_obj, dict):
+        return {k: secrets_to_dict(v) for k, v in secrets_obj.items()}
+    else:
+        return secrets_obj
+
 # まずStreamlit Secretsを試す
 try:
-    config = dict(st.secrets["auth"])
+    config = secrets_to_dict(st.secrets["auth"])
 except (FileNotFoundError, KeyError):
     pass
 
