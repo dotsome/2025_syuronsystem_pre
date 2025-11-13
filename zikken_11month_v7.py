@@ -554,7 +554,7 @@ Mermaid図:
         import requests
 
         # MermaidコードをKroki形式でエンコード（zlib + base64）
-        compressed = zlib.compress(final_mermaid.encode('utf-8'), 9)
+        compressed = zlib.compress(final_mermaid.encode('utf-8'), 6)
         encoded = base64.urlsafe_b64encode(compressed).decode('utf-8')
 
         # Kroki APIのURL（SVG形式）
