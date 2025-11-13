@@ -526,14 +526,14 @@ Mermaid図:
     logger.debug(f"[Q{q_num}] Final Mermaid = {final_mermaid[:500]}")
 
     # ──────────────────────────
-    # Step 6: Mermaid CLIでPNG生成
+    # Step 6: mermaid.ink APIでPNG生成
     # ──────────────────────────
     mmd_path = Path(user_dir) / f"{st.session_state.user_name}_{st.session_state.user_number}_{q_num}.mmd"
     png_path = mmd_path.with_suffix(".png")
-    
+
     # Mermaidファイルを保存
     mmd_path.write_text(final_mermaid, encoding="utf-8")
-    
+
     # デバッグ用：生成されたMermaidコードも保存
     debug_path = Path(user_dir) / f"debug_mermaid_{q_num}.txt"
     debug_content = f"""=== ROUGH MERMAID ===
@@ -548,32 +548,32 @@ Mermaid図:
     debug_path.write_text(debug_content, encoding="utf-8")
 
     try:
-        # Mermaid CLIでPNG生成
-        result = subprocess.run(
-            ["mmdc", "-i", str(mmd_path), "-o", str(png_path),
-             "-t", "default", "-b", "white"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=True
-        )
-        logger.info(f"[Q{q_num}] PNG generated successfully")
+        # mermaid.ink APIを使用してPNG生成
+        import base64
+        import urllib.parse
+        import requests
+
+        # MermaidコードをBase64エンコード
+        mermaid_bytes = final_mermaid.encode('utf-8')
+        mermaid_base64 = base64.b64encode(mermaid_bytes).decode('utf-8')
+
+        # mermaid.ink APIのURL
+        api_url = f"https://mermaid.ink/img/{mermaid_base64}"
+
+        # 画像をダウンロード
+        response = requests.get(api_url, timeout=30)
+        response.raise_for_status()
+
+        # PNGファイルとして保存
+        png_path.write_bytes(response.content)
+        logger.info(f"[Q{q_num}] PNG generated successfully via mermaid.ink API")
         return str(png_path)
-        
-    except FileNotFoundError:
-        st.error("❌ mmdc が見つかりません。`npm install -g @mermaid-js/mermaid-cli` を実行してください。")
-        st.code(final_mermaid, language="mermaid")
-        return None
-    except subprocess.CalledProcessError as e:
+
+    except Exception as e:
+        logger.exception(f"[Q{q_num}] Mermaid PNG generation failed")
         st.warning("⚠️ Mermaid 図生成に失敗しました。生成されたコードを表示します。")
         st.code(final_mermaid, language="mermaid")
-        st.error(f"エラー詳細: {e.stderr}")
-        logger.exception(f"Mermaid generation failed: {e.stderr}")
-        return None
-    except subprocess.TimeoutExpired:
-        st.warning("⚠️ Mermaid 図生成がタイムアウトしました。")
-        st.code(final_mermaid, language="mermaid")
-        logger.warning("Mermaid generation timeout")
+        st.error(f"エラー詳細: {str(e)}")
         return None
 
 # =================================================
