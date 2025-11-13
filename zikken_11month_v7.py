@@ -124,9 +124,15 @@ init_state("chat_history",     [])
 # =================================================
 #               認証設定
 # =================================================
-yaml_path = "config.yaml"
-with open(yaml_path) as file:
-    config = yaml.load(file, Loader=SafeLoader)
+# Streamlit Cloud環境ではst.secretsから、ローカルではconfig.yamlから読み込む
+try:
+    # Streamlit Cloud環境
+    config = dict(st.secrets["auth"])
+except (FileNotFoundError, KeyError):
+    # ローカル環境
+    yaml_path = "config.yaml"
+    with open(yaml_path) as file:
+        config = yaml.load(file, Loader=SafeLoader)
 
 authenticator = stauth.Authenticate(
     credentials=config['credentials'],

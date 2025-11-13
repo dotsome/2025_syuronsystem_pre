@@ -84,11 +84,36 @@ python create_yaml.py
 
 ## 使い方
 
-### アプリケーションの起動
+### ローカル環境での起動
 
 ```bash
 streamlit run zikken_11month_v7.py
 ```
+
+### Streamlit Cloudへのデプロイ
+
+1. **GitHubにプッシュ**
+   ```bash
+   git add .
+   git commit -m "Deploy to Streamlit Cloud"
+   git push
+   ```
+
+2. **Streamlit Cloudで設定**
+   - [Streamlit Cloud](https://share.streamlit.io/)にアクセス
+   - リポジトリを選択して新しいアプリを作成
+   - Main file path: `zikken_11month_v7.py`
+
+3. **Secrets の設定**
+   - アプリのダッシュボード > Settings > Secrets
+   - `.streamlit/secrets.toml.example`の内容をコピー
+   - 以下の情報を入力:
+     - `OPENAI_API_KEY`: 実際のOpenAI APIキー
+     - `auth.*`: 認証情報（`config.yaml`の内容）
+
+4. **デプロイ完了**
+   - 自動的にアプリがデプロイされます
+   - URLが発行されてアクセス可能になります
 
 ### 認証フロー
 
