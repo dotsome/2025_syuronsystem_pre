@@ -125,14 +125,37 @@ init_state("chat_history",     [])
 #               認証設定
 # =================================================
 # Streamlit Cloud環境ではst.secretsから、ローカルではconfig.yamlから読み込む
+config = None
+
+# まずStreamlit Secretsを試す
 try:
-    # Streamlit Cloud環境
     config = dict(st.secrets["auth"])
 except (FileNotFoundError, KeyError):
-    # ローカル環境
+    pass
+
+# Secretsが無い場合はconfig.yamlを試す
+if config is None:
     yaml_path = "config.yaml"
-    with open(yaml_path) as file:
-        config = yaml.load(file, Loader=SafeLoader)
+    try:
+        with open(yaml_path) as file:
+            config = yaml.load(file, Loader=SafeLoader)
+    except FileNotFoundError:
+        st.error("""
+        ⚠️ 認証設定が見つかりません
+
+        **Streamlit Cloudをご利用の場合:**
+        - App Settings > Secrets に認証情報を設定してください
+        - `.streamlit/secrets.toml.example` を参考にしてください
+
+        **ローカル環境の場合:**
+        - `config.yaml` ファイルを作成してください
+        - `create_yaml.py` を実行してパスワードをハッシュ化できます
+        """)
+        st.stop()
+
+if config is None:
+    st.error("認証設定の読み込みに失敗しました")
+    st.stop()
 
 authenticator = stauth.Authenticate(
     credentials=config['credentials'],
