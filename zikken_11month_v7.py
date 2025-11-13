@@ -13,6 +13,13 @@ import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
+# =================================================
+#                 ページ設定
+# =================================================
+# Note: st.set_page_config() must be the first Streamlit command
+st.set_page_config(page_title="人物関係想起システム",
+                   page_icon="📖", layout="wide")
+
 # -------------------------------------------------
 # 公開を開始するページ（0-index）
 # -------------------------------------------------
@@ -144,7 +151,12 @@ elif st.session_state["authentication_status"] is None:
     st.stop()
 
 elif st.session_state["authentication_status"]:
-    # ログイン成功
+    # ログイン成功 - サイドバーにログアウトボタンを追加
+    with st.sidebar:
+        st.markdown(f'## Welcome *{st.session_state["name"]}*')
+        authenticator.logout('Logout', 'sidebar')
+        st.divider()
+
     # プロファイル入力が完了していない場合、プロファイル入力画面を表示
     if not st.session_state.profile_completed:
         st.title("📝 プロファイル入力")
@@ -197,18 +209,6 @@ if not api_key:
     st.stop()
 
 client = openai.OpenAI(api_key=api_key)
-
-# =================================================
-#                 ページ設定
-# =================================================
-st.set_page_config(page_title="人物関係想起システム",
-                   page_icon="📖", layout="wide")
-
-# サイドバーにログアウトボタンを追加
-with st.sidebar:
-    st.markdown(f'## Welcome *{st.session_state["name"]}*')
-    authenticator.logout('Logout', 'sidebar')
-    st.divider()
 
 st.title(f"📖 実験用システム - "
          f"{st.session_state.user_name} / {st.session_state.user_number}")
