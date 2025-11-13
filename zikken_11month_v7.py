@@ -627,27 +627,37 @@ if user_input:
     q_num = st.session_state.question_number
     logger.info(f"[Q{q_num}] {user_input}")
 
+    # 質問を履歴に追加
     st.session_state.chat_history.append(
         {"type": "question", "number": q_num, "content": user_input}
     )
 
-    thinking_msg = f"『{user_input}』について思考中です…"
-    idx_thinking = len(st.session_state.chat_history)
-    st.session_state.chat_history.append(
-        {"type": "answer", "content": thinking_msg, "tmp": True}
-    )
+    # 質問をすぐに表示
+    st.markdown(
+        f'<div style="background:#DCF8C6;padding:10px;border-radius:10px;margin:5px 0;">'
+        f'<b>Q{q_num}:</b> {user_input}</div>',
+        unsafe_allow_html=True)
 
     story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
 
+    # 登場人物の関係図生成
     png_file = None
     if is_character_question(user_input):
-        with st.spinner("登場人物の関係図を生成中..."):
-            png_file = generate_mermaid_file(user_input, story_text_so_far, q_num)
-            if png_file:
-                st.session_state.chat_history.append(
-                    {"type": "image",
-                     "path": png_file,
-                     "caption": f"登場人物関係図 (質問 #{q_num})"})
+        status_placeholder = st.empty()
+        status_placeholder.info("💭 登場人物の関係図を生成中...")
+        png_file = generate_mermaid_file(user_input, story_text_so_far, q_num)
+        status_placeholder.empty()
+        if png_file:
+            st.session_state.chat_history.append(
+                {"type": "image",
+                 "path": png_file,
+                 "caption": f"登場人物関係図 (質問 #{q_num})"})
+            # 画像を表示
+            st.image(png_file, caption=f"登場人物関係図 (質問 #{q_num})", width='stretch')
+
+    # 回答生成
+    status_placeholder = st.empty()
+    status_placeholder.info("💭 回答を生成中...")
 
     prompt = f"""
 以下はユーザーがこれまでに読んだ小説本文です。
@@ -664,26 +674,27 @@ if user_input:
     )
 
     try:
-        with st.spinner("回答を生成中..."):
-            resp  = openai_chat(
-                        "gpt-4.1",
-                        messages=st.session_state.messages,
-                        temperature=0.7
-                    )
-            reply = resp.choices[0].message.content.strip()
+        resp  = openai_chat(
+                    "gpt-4.1",
+                    messages=st.session_state.messages,
+                    temperature=0.7
+                )
+        reply = resp.choices[0].message.content.strip()
+        status_placeholder.empty()
 
-        st.session_state.chat_history[idx_thinking] = {
-            "type": "answer", "content": reply
-        }
+        st.session_state.chat_history.append(
+            {"type": "answer", "content": reply}
+        )
         st.session_state.messages.append(
             {"role": "assistant", "content": reply})
         logger.info(f"[A{q_num}] 回答生成完了")
 
     except Exception as e:
+        status_placeholder.empty()
         err = f"エラーが発生しました: {e}"
-        st.session_state.chat_history[idx_thinking] = {
-            "type": "answer", "content": err
-        }
+        st.session_state.chat_history.append(
+            {"type": "answer", "content": err}
+        )
         st.error(err)
         logger.exception("回答生成失敗")
 
