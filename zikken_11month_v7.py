@@ -210,8 +210,7 @@ if not api_key:
 
 client = openai.OpenAI(api_key=api_key)
 
-st.title(f"📖 実験用システム - "
-         f"{st.session_state.user_name} / {st.session_state.user_number}")
+st.title("📖 人物関係想起システム")
 
 # =================================================
 #              小説データ読み込み
@@ -580,13 +579,18 @@ with left_col:
     )
 
     st.markdown("### 💬 質問")
-    user_input = st.chat_input("この小説について質問できます", key="main_input")
+    user_input_text = st.text_area(
+        "この小説について質問してください",
+        height=100,
+        key="question_input",
+        placeholder="例: 主人公の名前は何ですか？"
+    )
+    send_button = st.button("📤 送信", type="primary", use_container_width=True)
 
-    st.markdown("---")
-    info1, info2, info3 = st.columns(3)
-    info1.metric("ユーザー",   st.session_state.user_name)
-    info2.metric("ナンバー",   st.session_state.user_number)
-    info3.metric("質問数",     st.session_state.question_number)
+    # ボタンが押されたときに user_input に値を設定
+    user_input = None
+    if send_button and user_input_text.strip():
+        user_input = user_input_text.strip()
 
 # -------------------------------------------------
 # 右：履歴 & 図 & ログ DL
@@ -603,21 +607,16 @@ with right_col:
                 if item["type"] == "question":
                     st.markdown(
                         f'<div style="background:#DCF8C6;padding:10px;border-radius:10px;margin:5px 0;">'
-                        f'<b>Q{item["number"]}:</b> {item["content"]}</div>',
+                        f'<b>質問:</b> {item["content"]}</div>',
                         unsafe_allow_html=True)
                 elif item["type"] == "answer":
                     st.markdown(
                         f'<div style="background:#F1F0F0;padding:10px;border-radius:10px;margin:5px 0;">'
-                        f'<b>A:</b> {item["content"]}</div>',
+                        f'<b>回答:</b> {item["content"]}</div>',
                         unsafe_allow_html=True)
                 elif item["type"] == "image" and Path(item["path"]).exists():
                     st.image(item["path"], caption=item["caption"],
                              width='stretch')
-
-    st.markdown("### 📥 ログ")
-    with open(log_file, "r", encoding="utf-8") as f:
-        st.download_button("ログをダウンロード", f.read(),
-                           file_name=log_file.name, mime="text/plain")
 
 # =================================================
 #               ユーザー入力処理
@@ -635,7 +634,7 @@ if user_input:
     # 質問をすぐに表示
     st.markdown(
         f'<div style="background:#DCF8C6;padding:10px;border-radius:10px;margin:5px 0;">'
-        f'<b>Q{q_num}:</b> {user_input}</div>',
+        f'<b>質問:</b> {user_input}</div>',
         unsafe_allow_html=True)
 
     story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
