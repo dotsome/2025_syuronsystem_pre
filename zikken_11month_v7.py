@@ -31,43 +31,30 @@ START_PAGE = 30 #START_PAGE+1ページから読者が読み進めます
 # =================================================
 #                🔸  ロガー関連
 # =================================================
-class GoogleSheetsHandler(logging.Handler):
-    """Google Sheetsにログを出力するハンドラー"""
-    def __init__(self, spreadsheet_key: str, worksheet_name: str = "Logs"):
-        super().__init__()
-        self.spreadsheet_key = spreadsheet_key
-        self.worksheet_name = worksheet_name
-        self.worksheet = None
-        self._init_worksheet()
+class GoogleSheetsLogger:
+    """Google Sheetsにログを出力するクラス（ロギングハンドラーとQAログ用）"""
+    _instance = None
 
-    def _init_worksheet(self):
-        """Google Sheetsワークシートを初期化"""
+    def __new__(cls, spreadsheet_key: str):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.spreadsheet_key = spreadsheet_key
+            cls._instance.client = None
+            cls._instance.spreadsheet = None
+            cls._instance._init_client()
+        return cls._instance
+
+    def _init_client(self):
+        """Google Sheetsクライアントを初期化"""
         try:
-            # Streamlit Secretsから認証情報を取得
             if "gcp_service_account" in st.secrets:
                 creds_dict = dict(st.secrets["gcp_service_account"])
                 scope = ['https://spreadsheets.google.com/feeds',
                         'https://www.googleapis.com/auth/drive']
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-                client = gspread.authorize(creds)
-
-                # スプレッドシートを開く
-                spreadsheet = client.open_by_key(self.spreadsheet_key)
-
-                # ワークシートを取得または作成
-                try:
-                    self.worksheet = spreadsheet.worksheet(self.worksheet_name)
-                except gspread.exceptions.WorksheetNotFound:
-                    self.worksheet = spreadsheet.add_worksheet(
-                        title=self.worksheet_name, rows=1000, cols=10)
-                    # ヘッダー行を追加
-                    self.worksheet.append_row([
-                        "Timestamp", "Level", "User", "Question#",
-                        "Function", "Message"
-                    ])
-
-                # 初期化成功をログ出力
-                st.success(f"✅ Google Sheets接続成功: {self.worksheet_name}")
+                self.client = gspread.authorize(creds)
+                self.spreadsheet = self.client.open_by_key(self.spreadsheet_key)
+                st.success(f"✅ Google Sheets接続成功")
             else:
                 st.warning("⚠️ gcp_service_account がsecretsに見つかりません")
         except Exception as e:
@@ -76,6 +63,74 @@ class GoogleSheetsHandler(logging.Handler):
             st.error(error_msg)
             import traceback
             st.code(traceback.format_exc())
+
+    def get_or_create_worksheet(self, worksheet_name: str, headers: list = None):
+        """ワークシートを取得または作成"""
+        if self.spreadsheet is None:
+            return None
+
+        try:
+            worksheet = self.spreadsheet.worksheet(worksheet_name)
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = self.spreadsheet.add_worksheet(
+                title=worksheet_name, rows=1000, cols=20)
+            if headers:
+                worksheet.append_row(headers)
+        return worksheet
+
+    def log_qa(self, user_name: str, user_number: str, q_num: int,
+               question: str, answer: str, mermaid_code: str = None,
+               svg_path: str = None):
+        """質問・回答・図をGoogle Sheetsに記録"""
+        if self.spreadsheet is None:
+            return
+
+        try:
+            # QA専用ワークシートを取得/作成
+            worksheet = self.get_or_create_worksheet(
+                "QA_Logs",
+                headers=["Timestamp", "User", "Number", "Question#",
+                        "Question", "Answer", "Has_Diagram", "Mermaid_Code", "SVG_Path"]
+            )
+
+            if worksheet:
+                row_data = [
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    user_name,
+                    user_number,
+                    str(q_num),
+                    question,
+                    answer,
+                    "Yes" if mermaid_code else "No",
+                    mermaid_code if mermaid_code else "",
+                    svg_path if svg_path else ""
+                ]
+                worksheet.append_row(row_data)
+        except Exception as e:
+            print(f"QAログ書き込みエラー: {e}")
+            st.warning(f"⚠️ QAログの記録に失敗しました: {e}")
+
+class GoogleSheetsHandler(logging.Handler):
+    """Google Sheetsにログを出力するハンドラー（既存のログ用）"""
+    def __init__(self, spreadsheet_key: str, worksheet_name: str = "Logs"):
+        super().__init__()
+        self.spreadsheet_key = spreadsheet_key
+        self.worksheet_name = worksheet_name
+        self.worksheet = None
+        self.sheets_logger = GoogleSheetsLogger(spreadsheet_key)
+        self._init_worksheet()
+
+    def _init_worksheet(self):
+        """Google Sheetsワークシートを初期化（既存のログ用）"""
+        try:
+            # GoogleSheetsLoggerを使用してワークシートを取得
+            self.worksheet = self.sheets_logger.get_or_create_worksheet(
+                self.worksheet_name,
+                headers=["Timestamp", "Level", "User", "Question#", "Function", "Message"]
+            )
+        except Exception as e:
+            error_msg = f"Logsワークシート初期化エラー: {e}"
+            print(error_msg)
             self.worksheet = None
 
     def emit(self, record):
@@ -325,6 +380,11 @@ user_dir.mkdir(exist_ok=True)
 log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number}_chat_log.txt"
 logger   = _build_logger(log_file)
 logger.info("--- Session started ---")
+
+# Google Sheets QAロガーの初期化（Streamlit Cloudで有効）
+sheets_qa_logger = None
+if "google_spreadsheet_key" in st.secrets:
+    sheets_qa_logger = GoogleSheetsLogger(st.secrets["google_spreadsheet_key"])
 
 # =================================================
 #          OpenAI クライアント初期化
@@ -768,6 +828,7 @@ if user_input:
 
     # 登場人物の関係図生成
     svg_file = None
+    mermaid_code = None
     if is_character_question(user_input):
         status_placeholder = st.empty()
         status_placeholder.info("💭 登場人物の関係図を生成中...")
@@ -780,6 +841,11 @@ if user_input:
                  "caption": f"登場人物関係図 (質問 #{q_num})"})
             # SVG画像を表示
             st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", use_container_width=True)
+
+            # Mermaidコードを読み込む
+            mmd_path = Path(svg_file).with_suffix(".mmd")
+            if mmd_path.exists():
+                mermaid_code = mmd_path.read_text(encoding="utf-8")
 
     # 回答生成
     status_placeholder = st.empty()
@@ -814,6 +880,18 @@ if user_input:
         st.session_state.messages.append(
             {"role": "assistant", "content": reply})
         logger.info(f"[A{q_num}] 回答生成完了")
+
+        # Google SheetsにQAログを記録
+        if sheets_qa_logger:
+            sheets_qa_logger.log_qa(
+                user_name=st.session_state.user_name,
+                user_number=st.session_state.user_number,
+                q_num=q_num,
+                question=user_input,
+                answer=reply,
+                mermaid_code=mermaid_code,
+                svg_path=svg_file
+            )
 
     except Exception as e:
         status_placeholder.empty()
