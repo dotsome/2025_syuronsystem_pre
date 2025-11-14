@@ -92,11 +92,20 @@ class GoogleSheetsLogger:
                 if elapsed < 2:
                     time.sleep(2 - elapsed)
 
+            # SVGファイルの内容を読み込む
+            svg_content = ""
+            if svg_path and Path(svg_path).exists():
+                try:
+                    svg_content = Path(svg_path).read_text(encoding='utf-8')
+                except Exception as e:
+                    print(f"SVG読み込みエラー: {e}")
+                    svg_content = f"[SVG読み込み失敗: {svg_path}]"
+
             # QA専用ワークシートを取得/作成
             worksheet = self.get_or_create_worksheet(
                 "QA_Logs",
                 headers=["Timestamp", "User", "Number", "Question#",
-                        "Question", "Answer", "Has_Diagram", "Mermaid_Code", "SVG_Path"]
+                        "Question", "Answer", "Has_Diagram", "Mermaid_Code", "SVG_Content"]
             )
 
             if worksheet:
@@ -109,7 +118,7 @@ class GoogleSheetsLogger:
                     answer,
                     "Yes" if mermaid_code else "No",
                     mermaid_code if mermaid_code else "",
-                    svg_path if svg_path else ""
+                    svg_content if svg_content else ""
                 ]
                 worksheet.append_row(row_data)
                 self._last_qa_write = time.time()
