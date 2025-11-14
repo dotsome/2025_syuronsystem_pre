@@ -602,7 +602,7 @@ def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | N
     # Step 2: 中心人物を基にざっくりMermaid図を生成
     # ──────────────────────────
     rough_mermaid_prompt = f"""
-以下の質問と本文を基に、「{main_focus}」を中心とした登場人物の関係を表すMermaid図を生成してください。
+以下の質問と本文を基に、「{main_focus}」を中心とした主要登場人物の関係図をMermaid形式で生成してください。
 
 質問: {question}
 
@@ -611,15 +611,16 @@ def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | N
 
 要件:
 - graph LR または graph TD で開始
-- {main_focus}を中心に配置し、関連する人物との関係を明確に表現
-- 登場人物をノードとして表現
-- 関係性を矢印で表現
-- 必要に応じてsubgraphでグループ化
-- 双方向の関係は <--> で表現
-- 一方向の関係は --> で表現
-- 点線矢印 -.-> も使用可
-- エッジには日本語でラベルを付ける
-- {main_focus}に直接または間接的に関わる人物を優先的に含める
+- **{main_focus}を中心**に、直接関わる主要人物のみを含める
+- 登場人物は物語上重要な人物に限定する（5-10人程度）
+- 関係性の表現：
+  * 双方向の関係: <--> を使用（例: 友人、仲間、恋人など）
+  * 一方向の関係: --> を使用（例: 上司→部下、師匠→弟子など）
+  * 点線矢印 -.-> は補助的な関係に使用
+- **重要**: 同じ2人の間の関係は最大2本まで（AからB、BからA）
+- エッジには簡潔な日本語ラベルを付ける（5文字以内推奨）
+- 必要に応じてsubgraphでグループ化（例: 勇者パーティー、魔王軍など）
+- {main_focus}に直接関わらない人物間の関係は省略する
 
 出力はMermaidコードのみ（説明不要）
 """
@@ -647,7 +648,7 @@ def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | N
     # ──────────────────────────
     csv_prompt = f"""
 以下のMermaid図から人物関係を抽出してCSV形式で出力してください。
-特に「{main_focus}」に関連する関係を優先的に抽出してください。
+「{main_focus}」を中心とした主要人物の関係のみを抽出してください。
 
 Mermaid図:
 {rough_mermaid}
@@ -661,14 +662,17 @@ Mermaid図:
 説明:
 - 主体: 関係の起点となる人物
 - 関係タイプ: directed（一方向）, bidirectional（双方向）, dotted（点線）
-- 関係詳細: 関係を表す日本語（10文字以内）
+- 関係詳細: 関係を表す日本語（5文字以内）
 - 客体: 関係の終点となる人物
 - グループ: subgraphに属する場合はグループ名、なければ空欄
 
-注意:
-- ヘッダーは不要
+重要な制約:
+- **同じ2人の間の関係は最大2本まで**（A→B と B→A のみ）
+- 同じ方向の重複する関係は1つにまとめる
 - 本文に存在しない人物関係は除外
-- {main_focus}に関連する重要度の高い順に並べる
+- {main_focus}に直接関わる人物を優先
+- {main_focus}に直接関わらない人物間の関係は省略
+- ヘッダーは不要
 """
 
     try:
@@ -693,49 +697,58 @@ Mermaid図:
     def build_mermaid_from_csv(csv_text: str, main_focus: str = None) -> str:
         """
         CSVデータから正確なMermaid図を構築
+        重複する関係を統合し、同じペア間の関係を最大2本（双方向）に制限
         """
         # ノードとエッジの収集
         nodes = set()
         edges = []
         groups = {}  # グループ名 -> ノードリスト
-        
+        edge_map = {}  # (src, dst)のペアをキーにして重複チェック
+
         reader = csv.reader(csv_text.splitlines())
         for row in reader:
             if len(row) < 4:
                 continue
-            
+
             src = row[0].strip()
             rel_type = row[1].strip() if len(row) > 1 else "directed"
             rel_label = row[2].strip() if len(row) > 2 else "関係"
             dst = row[3].strip() if len(row) > 3 else ""
             group = row[4].strip() if len(row) > 4 else ""
-            
+
             if not src or not dst:
                 continue
-            
+
+            # 同じペア（順序あり）の重複チェック
+            edge_key = (src, dst)
+            if edge_key in edge_map:
+                # 既に同じ方向の関係がある場合はスキップ
+                continue
+
             nodes.add(src)
             nodes.add(dst)
-            
+
             # グループの記録
             if group:
                 if group not in groups:
                     groups[group] = set()
                 groups[group].add(src)
                 groups[group].add(dst)
-            
+
             # エッジの記録
             edge_symbol = "-->"  # デフォルト
             if rel_type.lower() in ["bidirectional", "双方向"]:
                 edge_symbol = "<-->"
             elif rel_type.lower() in ["dotted", "点線"]:
                 edge_symbol = "-.->"
-            
+
             edges.append({
                 "src": src,
                 "dst": dst,
                 "symbol": edge_symbol,
-                "label": rel_label[:10]  # 10文字制限
+                "label": rel_label[:5]  # 5文字制限に変更
             })
+            edge_map[edge_key] = True
         
         # Mermaid図の構築
         lines = ["graph LR"]
