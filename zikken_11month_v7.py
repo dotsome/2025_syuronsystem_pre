@@ -200,6 +200,47 @@ def _build_logger(log_path: Path) -> logging.Logger:
             record.q_num = st.session_state.get("question_number", 0)
             return True
 
+    class StoryTextFilter(logging.Filter):
+        """本文を省略するフィルター"""
+        def filter(self, record: logging.LogRecord) -> bool:
+            msg = record.getMessage()
+
+            # 本文（参考）を含む場合は省略
+            if "本文（参考）:" in msg or "本文ここから" in msg:
+                # 本文部分を検出して省略
+                lines = msg.split('\n')
+                filtered_lines = []
+                story_section = False
+                story_line_count = 0
+
+                for line in lines:
+                    if "本文（参考）:" in line or "本文ここから" in line:
+                        story_section = True
+                        filtered_lines.append(line)
+                        filtered_lines.append("【本文省略 - 詳細はストーリーファイルを参照】")
+                        story_line_count = 0
+                        continue
+
+                    if story_section:
+                        story_line_count += 1
+                        # 最初の2行だけ表示
+                        if story_line_count <= 2:
+                            filtered_lines.append(line)
+                        elif story_line_count == 3:
+                            filtered_lines.append("...")
+                        # 終了マーカーを検出
+                        if "本文ここまで" in line or "---" in line:
+                            story_section = False
+                            if story_line_count > 3:
+                                filtered_lines.append(line)
+                    else:
+                        filtered_lines.append(line)
+
+                record.msg = '\n'.join(filtered_lines)
+                record.args = ()
+
+            return True
+
     fmt_file = "%(asctime)s [%(levelname)s] U:%(user)s Q:%(q_num)s %(funcName)s: %(message)s"
     fmt_term = "%(asctime)s [%(levelname)s] %(message)s"
 
@@ -212,6 +253,7 @@ def _build_logger(log_path: Path) -> logging.Logger:
     h_file.setFormatter(logging.Formatter(fmt_file))
     h_file.setLevel(logging.DEBUG)
     h_file.addFilter(ContextFilter())
+    h_file.addFilter(StoryTextFilter())  # 本文省略フィルターを追加
     logger.addHandler(h_file)
 
     # Console
@@ -219,6 +261,7 @@ def _build_logger(log_path: Path) -> logging.Logger:
     h_term.setFormatter(logging.Formatter(fmt_term))
     h_term.setLevel(logging.INFO)
     h_term.addFilter(ContextFilter())
+    h_term.addFilter(StoryTextFilter())  # 本文省略フィルターを追加
     logger.addHandler(h_term)
 
     # Google Sheets Handler (Streamlit Cloudで有効)
@@ -475,7 +518,7 @@ def is_character_question(question: str) -> bool:
         )
         answer = res.choices[0].message.content.strip().lower()
         return "yes" in answer
-    except Exception as e:
+    except Exception:
         logger.exception("is_character_question Error")
         return False
 
