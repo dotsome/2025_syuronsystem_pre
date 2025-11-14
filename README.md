@@ -104,16 +104,30 @@ streamlit run zikken_11month_v7.py
    - リポジトリを選択して新しいアプリを作成
    - Main file path: `zikken_11month_v7.py`
 
-3. **Secrets の設定**
+3. **Google Sheetsの準備（ログ出力用）**
+   - Google Sheetsで新しいスプレッドシートを作成
+   - スプレッドシートのURLから **Spreadsheet Key** を取得
+     - URL形式: `https://docs.google.com/spreadsheets/d/{SPREADSHEET_KEY}/edit`
+   - Google Cloud Consoleでサービスアカウントを作成
+     - [Google Cloud Console](https://console.cloud.google.com/) にアクセス
+     - プロジェクトを作成または選択
+     - 「APIとサービス」>「認証情報」>「サービスアカウントを作成」
+     - JSON形式の認証キーをダウンロード
+   - サービスアカウントのメールアドレスをスプレッドシートに共有（編集権限）
+
+4. **Secrets の設定**
    - アプリのダッシュボード > Settings > Secrets
    - `.streamlit/secrets.toml.example`の内容をコピー
    - 以下の情報を入力:
      - `OPENAI_API_KEY`: 実際のOpenAI APIキー
+     - `google_spreadsheet_key`: Google Sheetsのスプレッドシートキー
+     - `gcp_service_account`: サービスアカウントのJSON認証情報
      - `auth.*`: 認証情報（`config.yaml`の内容）
 
-4. **デプロイ完了**
+5. **デプロイ完了**
    - 自動的にアプリがデプロイされます
    - URLが発行されてアクセス可能になります
+   - ログはGoogle Sheetsに自動的に記録されます
 
 ### 認証フロー
 

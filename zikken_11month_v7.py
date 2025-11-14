@@ -6,12 +6,15 @@ import os, json, subprocess, logging, re, time, csv
 from pathlib import Path
 from functools import wraps
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
 import streamlit as st
 from dotenv import load_dotenv
 import openai
 import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # =================================================
 #                 ページ設定
@@ -28,6 +31,62 @@ START_PAGE = 30 #START_PAGE+1ページから読者が読み進めます
 # =================================================
 #                🔸  ロガー関連
 # =================================================
+class GoogleSheetsHandler(logging.Handler):
+    """Google Sheetsにログを出力するハンドラー"""
+    def __init__(self, spreadsheet_key: str, worksheet_name: str = "Logs"):
+        super().__init__()
+        self.spreadsheet_key = spreadsheet_key
+        self.worksheet_name = worksheet_name
+        self.worksheet = None
+        self._init_worksheet()
+
+    def _init_worksheet(self):
+        """Google Sheetsワークシートを初期化"""
+        try:
+            # Streamlit Secretsから認証情報を取得
+            if "gcp_service_account" in st.secrets:
+                creds_dict = dict(st.secrets["gcp_service_account"])
+                scope = ['https://spreadsheets.google.com/feeds',
+                        'https://www.googleapis.com/auth/drive']
+                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+                client = gspread.authorize(creds)
+
+                # スプレッドシートを開く
+                spreadsheet = client.open_by_key(self.spreadsheet_key)
+
+                # ワークシートを取得または作成
+                try:
+                    self.worksheet = spreadsheet.worksheet(self.worksheet_name)
+                except gspread.exceptions.WorksheetNotFound:
+                    self.worksheet = spreadsheet.add_worksheet(
+                        title=self.worksheet_name, rows=1000, cols=10)
+                    # ヘッダー行を追加
+                    self.worksheet.append_row([
+                        "Timestamp", "Level", "User", "Question#",
+                        "Function", "Message"
+                    ])
+        except Exception as e:
+            print(f"Google Sheets初期化エラー: {e}")
+            self.worksheet = None
+
+    def emit(self, record):
+        """ログレコードをGoogle Sheetsに書き込む"""
+        if self.worksheet is None:
+            return
+
+        try:
+            log_entry = [
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                record.levelname,
+                getattr(record, 'user', '-'),
+                str(getattr(record, 'q_num', 0)),
+                record.funcName,
+                self.format(record)
+            ]
+            self.worksheet.append_row(log_entry)
+        except Exception as e:
+            print(f"Google Sheetsログ書き込みエラー: {e}")
+
 def _build_logger(log_path: Path) -> logging.Logger:
     """
     ・ファイル      : DEBUG 以上を 1 MB × 5 世代で保存
@@ -60,6 +119,20 @@ def _build_logger(log_path: Path) -> logging.Logger:
     h_term.setLevel(logging.INFO)
     h_term.addFilter(ContextFilter())
     logger.addHandler(h_term)
+
+    # Google Sheets Handler (Streamlit Cloudで有効)
+    try:
+        if "google_spreadsheet_key" in st.secrets:
+            h_sheets = GoogleSheetsHandler(
+                spreadsheet_key=st.secrets["google_spreadsheet_key"],
+                worksheet_name=f"{st.session_state.get('user_name', 'unknown')}_logs"
+            )
+            h_sheets.setFormatter(logging.Formatter("%(message)s"))
+            h_sheets.setLevel(logging.INFO)
+            h_sheets.addFilter(ContextFilter())
+            logger.addHandler(h_sheets)
+    except Exception as e:
+        print(f"Google Sheetsハンドラー追加エラー: {e}")
 
     logger.propagate = False
     return logger
