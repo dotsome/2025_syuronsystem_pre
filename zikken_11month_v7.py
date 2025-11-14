@@ -7,6 +7,7 @@ from pathlib import Path
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 import streamlit as st
 from dotenv import load_dotenv
 import openai
@@ -31,6 +32,121 @@ START_PAGE = 30 #START_PAGE+1ページから読者が読み進めます
 # =================================================
 #                🔸  ロガー関連
 # =================================================
+class GoogleDriveUploader:
+    """Google Driveにファイルをアップロードするクラス"""
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.service = None
+            cls._instance.folder_id = None
+            cls._instance._init_service()
+        return cls._instance
+
+    def _init_service(self):
+        """Google Drive APIサービスを初期化"""
+        try:
+            if "gcp_service_account" in st.secrets:
+                from googleapiclient.discovery import build
+                from googleapiclient.http import MediaFileUpload
+
+                creds_dict = dict(st.secrets["gcp_service_account"])
+                scope = ['https://www.googleapis.com/auth/drive.file']
+                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+                self.service = build('drive', 'v3', credentials=creds)
+
+                # フォルダIDが設定されている場合は保存
+                if "google_drive_folder_id" in st.secrets:
+                    self.folder_id = st.secrets["google_drive_folder_id"]
+
+                print(f"✅ Google Drive API接続成功")
+            else:
+                print("⚠️ gcp_service_account がsecretsに見つかりません")
+        except Exception as e:
+            print(f"Google Drive API初期化エラー: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def upload_file(self, file_path: str, folder_id: str = None) -> str | None:
+        """ファイルをGoogle Driveにアップロード"""
+        if self.service is None:
+            return None
+
+        try:
+            from googleapiclient.http import MediaFileUpload
+
+            file_path = Path(file_path)
+            if not file_path.exists():
+                print(f"ファイルが存在しません: {file_path}")
+                return None
+
+            # MIMEタイプの判定
+            mime_types = {
+                '.txt': 'text/plain',
+                '.log': 'text/plain',
+                '.svg': 'image/svg+xml',
+                '.mmd': 'text/plain',
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.json': 'application/json',
+            }
+            mime_type = mime_types.get(file_path.suffix, 'application/octet-stream')
+
+            # アップロード先フォルダID（優先順位: 引数 > インスタンス変数 > なし）
+            target_folder = folder_id or self.folder_id
+
+            # ファイルメタデータ
+            file_metadata = {'name': file_path.name}
+            if target_folder:
+                file_metadata['parents'] = [target_folder]
+
+            # ファイルをアップロード
+            media = MediaFileUpload(str(file_path), mimetype=mime_type, resumable=True)
+            file = self.service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id, webViewLink'
+            ).execute()
+
+            file_id = file.get('id')
+            web_link = file.get('webViewLink')
+
+            print(f"✅ Google Driveにアップロード完了: {file_path.name} (ID: {file_id})")
+            return web_link
+
+        except Exception as e:
+            print(f"Google Driveアップロードエラー: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def create_folder(self, folder_name: str, parent_folder_id: str = None) -> str | None:
+        """Google Drive上にフォルダを作成"""
+        if self.service is None:
+            return None
+
+        try:
+            file_metadata = {
+                'name': folder_name,
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+            if parent_folder_id:
+                file_metadata['parents'] = [parent_folder_id]
+
+            folder = self.service.files().create(
+                body=file_metadata,
+                fields='id'
+            ).execute()
+
+            folder_id = folder.get('id')
+            print(f"✅ Google Driveにフォルダ作成完了: {folder_name} (ID: {folder_id})")
+            return folder_id
+
+        except Exception as e:
+            print(f"Google Driveフォルダ作成エラー: {e}")
+            return None
+
 class GoogleSheetsLogger:
     """Google Sheetsにログを出力するクラス（ロギングハンドラーとQAログ用）"""
     _instance = None
@@ -618,7 +734,7 @@ def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | N
     
     try:
         res_who = openai_chat(
-            "gpt-4o",
+            "gpt-4.1",
             messages=[
                 {"role": "system", "content": "質問の中心人物を特定します。"},
                 {"role": "user", "content": who_prompt}
@@ -1007,31 +1123,10 @@ if user_input:
 
     story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
 
-    # 登場人物の関係図生成
-    svg_file = None
-    mermaid_code = None
-    if is_character_question(user_input):
-        status_placeholder = st.empty()
-        status_placeholder.info("💭 登場人物の関係図を生成中...")
-        svg_file = generate_mermaid_file(user_input, story_text_so_far, q_num)
-        status_placeholder.empty()
-        if svg_file:
-            st.session_state.chat_history.append(
-                {"type": "image",
-                 "path": svg_file,
-                 "caption": f"登場人物関係図 (質問 #{q_num})"})
-            # SVG画像を表示
-            st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", use_container_width=True)
+    # 登場人物質問かどうか判定
+    is_char_question = is_character_question(user_input)
 
-            # Mermaidコードを読み込む
-            mmd_path = Path(svg_file).with_suffix(".mmd")
-            if mmd_path.exists():
-                mermaid_code = mmd_path.read_text(encoding="utf-8")
-
-    # 回答生成
-    status_placeholder = st.empty()
-    status_placeholder.info("💭 回答を生成中...")
-
+    # 回答生成用のプロンプトを準備
     prompt = f"""
 以下はユーザーがこれまでに読んだ小説本文です。
 
@@ -1046,16 +1141,62 @@ if user_input:
         {"role": "user", "content": prompt + "\n\n質問: " + user_input}
     )
 
-    try:
-        resp  = openai_chat(
-                    "gpt-4.1",
-                    messages=st.session_state.messages,
-                    temperature=0.7,
-                    log_label="質問への回答生成"
-                )
-        reply = resp.choices[0].message.content.strip()
-        status_placeholder.empty()
+    # 並行処理の準備
+    svg_file = None
+    mermaid_code = None
+    reply = None
 
+    try:
+        if is_char_question:
+            # 図の生成と回答生成を並行実行
+            status_placeholder = st.empty()
+            status_placeholder.info("💭 登場人物の関係図と回答を生成中...")
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                # 2つのタスクを並行実行
+                diagram_future = executor.submit(generate_mermaid_file, user_input, story_text_so_far, q_num)
+                answer_future = executor.submit(
+                    openai_chat,
+                    "gpt-4.1",
+                    st.session_state.messages,
+                    0.7,
+                    "質問への回答生成"
+                )
+
+                # 両方の結果を取得（並行処理）
+                svg_file = diagram_future.result()
+                resp = answer_future.result()
+                reply = resp.choices[0].message.content.strip()
+
+            status_placeholder.empty()
+
+            # 図の表示
+            if svg_file:
+                st.session_state.chat_history.append(
+                    {"type": "image",
+                     "path": svg_file,
+                     "caption": f"登場人物関係図 (質問 #{q_num})"})
+                st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", use_container_width=True)
+
+                # Mermaidコードを読み込む
+                mmd_path = Path(svg_file).with_suffix(".mmd")
+                if mmd_path.exists():
+                    mermaid_code = mmd_path.read_text(encoding="utf-8")
+        else:
+            # 登場人物質問でない場合は回答のみ生成
+            status_placeholder = st.empty()
+            status_placeholder.info("💭 回答を生成中...")
+
+            resp = openai_chat(
+                "gpt-4.1",
+                messages=st.session_state.messages,
+                temperature=0.7,
+                log_label="質問への回答生成"
+            )
+            reply = resp.choices[0].message.content.strip()
+            status_placeholder.empty()
+
+        # 回答を履歴に追加
         st.session_state.chat_history.append(
             {"type": "answer", "content": reply}
         )
@@ -1076,7 +1217,8 @@ if user_input:
             )
 
     except Exception as e:
-        status_placeholder.empty()
+        if 'status_placeholder' in locals():
+            status_placeholder.empty()
         err = f"エラーが発生しました: {e}"
         st.session_state.chat_history.append(
             {"type": "answer", "content": err}
