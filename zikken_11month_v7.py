@@ -329,8 +329,14 @@ def _build_logger(log_path: Path) -> logging.Logger:
     """
     class ContextFilter(logging.Filter):
         def filter(self, record: logging.LogRecord) -> bool:
-            record.user  = st.session_state.get("user_name", "-")
-            record.q_num = st.session_state.get("question_number", 0)
+            # スレッドセーフ: ScriptRunContextが存在する場合のみアクセス
+            try:
+                record.user  = st.session_state.get("user_name", "-")
+                record.q_num = st.session_state.get("question_number", 0)
+            except Exception:
+                # スレッド内など、Streamlitコンテキストがない場合はデフォルト値
+                record.user  = "-"
+                record.q_num = 0
             return True
 
     class StoryTextFilter(logging.Filter):
@@ -1166,6 +1172,11 @@ elif st.session_state["authentication_status"]:
                 status_placeholder = st.empty()
                 status_placeholder.info("💭 登場人物の関係図と回答を生成中...")
 
+                # スレッドに渡す値を事前に取得（Streamlitコンテキストの外で使用するため）
+                user_name = st.session_state.user_name
+                user_number = st.session_state.user_number
+                messages = st.session_state.messages
+
                 with ThreadPoolExecutor(max_workers=2) as executor:
                     # 2つのタスクを並行実行
                     diagram_future = executor.submit(
@@ -1174,13 +1185,13 @@ elif st.session_state["authentication_status"]:
                         story_text_so_far,
                         q_num,
                         str(user_dir),
-                        st.session_state.user_name,
-                        st.session_state.user_number
+                        user_name,
+                        user_number
                     )
                     answer_future = executor.submit(
                         openai_chat,
                         "gpt-4.1",
-                        st.session_state.messages,
+                        messages,
                         log_label="質問への回答生成",
                         temperature=0.7
                     )
