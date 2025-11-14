@@ -65,8 +65,17 @@ class GoogleSheetsHandler(logging.Handler):
                         "Timestamp", "Level", "User", "Question#",
                         "Function", "Message"
                     ])
+
+                # 初期化成功をログ出力
+                st.success(f"✅ Google Sheets接続成功: {self.worksheet_name}")
+            else:
+                st.warning("⚠️ gcp_service_account がsecretsに見つかりません")
         except Exception as e:
-            print(f"Google Sheets初期化エラー: {e}")
+            error_msg = f"Google Sheets初期化エラー: {e}"
+            print(error_msg)
+            st.error(error_msg)
+            import traceback
+            st.code(traceback.format_exc())
             self.worksheet = None
 
     def emit(self, record):
@@ -85,7 +94,12 @@ class GoogleSheetsHandler(logging.Handler):
             ]
             self.worksheet.append_row(log_entry)
         except Exception as e:
-            print(f"Google Sheetsログ書き込みエラー: {e}")
+            error_msg = f"Google Sheetsログ書き込みエラー: {e}"
+            print(error_msg)
+            # 最初のエラーのみ表示して、以降はサイレントに
+            if not hasattr(self, '_error_shown'):
+                st.error(error_msg)
+                self._error_shown = True
 
 def _build_logger(log_path: Path) -> logging.Logger:
     """
@@ -125,14 +139,16 @@ def _build_logger(log_path: Path) -> logging.Logger:
         if "google_spreadsheet_key" in st.secrets:
             h_sheets = GoogleSheetsHandler(
                 spreadsheet_key=st.secrets["google_spreadsheet_key"],
-                worksheet_name=f"{st.session_state.get('user_name', 'unknown')}_logs"
+                worksheet_name="Logs"  # 固定のワークシート名を使用
             )
             h_sheets.setFormatter(logging.Formatter("%(message)s"))
             h_sheets.setLevel(logging.INFO)
             h_sheets.addFilter(ContextFilter())
             logger.addHandler(h_sheets)
     except Exception as e:
-        print(f"Google Sheetsハンドラー追加エラー: {e}")
+        error_msg = f"Google Sheetsハンドラー追加エラー: {e}"
+        print(error_msg)
+        st.error(error_msg)
 
     logger.propagate = False
     return logger
