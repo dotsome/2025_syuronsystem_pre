@@ -81,11 +81,17 @@ class GoogleSheetsLogger:
     def log_qa(self, user_name: str, user_number: str, q_num: int,
                question: str, answer: str, mermaid_code: str = None,
                svg_path: str = None):
-        """質問・回答・図をGoogle Sheetsに記録"""
+        """質問・回答・図をGoogle Sheetsに記録（レート制限対策付き）"""
         if self.spreadsheet is None:
             return
 
         try:
+            # レート制限対策: 前回の書き込みから2秒待つ
+            if hasattr(self, '_last_qa_write'):
+                elapsed = time.time() - self._last_qa_write
+                if elapsed < 2:
+                    time.sleep(2 - elapsed)
+
             # QA専用ワークシートを取得/作成
             worksheet = self.get_or_create_worksheet(
                 "QA_Logs",
@@ -106,9 +112,13 @@ class GoogleSheetsLogger:
                     svg_path if svg_path else ""
                 ]
                 worksheet.append_row(row_data)
+                self._last_qa_write = time.time()
         except Exception as e:
-            print(f"QAログ書き込みエラー: {e}")
-            st.warning(f"⚠️ QAログの記録に失敗しました: {e}")
+            error_msg = f"QAログ書き込みエラー: {e}"
+            print(error_msg)
+            # レート制限エラーの場合は、ユーザーに通知しない（サイレント）
+            if "429" not in str(e) and "Quota exceeded" not in str(e):
+                st.warning(f"⚠️ QAログの記録に失敗しました: {e}")
 
 class GoogleSheetsHandler(logging.Handler):
     """Google Sheetsにログを出力するハンドラー（既存のログ用）"""
@@ -134,9 +144,14 @@ class GoogleSheetsHandler(logging.Handler):
             self.worksheet = None
 
     def emit(self, record):
-        """ログレコードをGoogle Sheetsに書き込む"""
+        """ログレコードをGoogle Sheetsに書き込む（バッファリング）"""
         if self.worksheet is None:
             return
+
+        # バッファに追加（バッチ書き込みのため）
+        if not hasattr(self, '_buffer'):
+            self._buffer = []
+            self._last_flush = time.time()
 
         try:
             log_entry = [
@@ -147,14 +162,31 @@ class GoogleSheetsHandler(logging.Handler):
                 record.funcName,
                 self.format(record)
             ]
-            self.worksheet.append_row(log_entry)
+            self._buffer.append(log_entry)
+
+            # 10件以上溜まったら、または30秒経過したらフラッシュ
+            if len(self._buffer) >= 10 or (time.time() - self._last_flush) > 30:
+                self._flush_buffer()
         except Exception as e:
-            error_msg = f"Google Sheetsログ書き込みエラー: {e}"
+            error_msg = f"Google Sheetsログバッファエラー: {e}"
             print(error_msg)
-            # 最初のエラーのみ表示して、以降はサイレントに
             if not hasattr(self, '_error_shown'):
-                st.error(error_msg)
+                # エラー表示は最初の1回のみ（UIを汚さないため）
                 self._error_shown = True
+
+    def _flush_buffer(self):
+        """バッファの内容を一括書き込み"""
+        if not hasattr(self, '_buffer') or not self._buffer:
+            return
+
+        try:
+            # バッチで書き込み（1回のAPI呼び出しで複数行）
+            self.worksheet.append_rows(self._buffer)
+            self._buffer = []
+            self._last_flush = time.time()
+        except Exception as e:
+            print(f"Google Sheetsバッチ書き込みエラー: {e}")
+            self._buffer = []  # エラー時もバッファをクリア
 
 def _build_logger(log_path: Path) -> logging.Logger:
     """
@@ -190,6 +222,8 @@ def _build_logger(log_path: Path) -> logging.Logger:
     logger.addHandler(h_term)
 
     # Google Sheets Handler (Streamlit Cloudで有効)
+    # 注: レート制限対策のため、WARNINGレベル以上のみをGoogle Sheetsに記録
+    # 詳細ログはファイルに記録され、QAログは別途log_qa()で記録される
     try:
         if "google_spreadsheet_key" in st.secrets:
             h_sheets = GoogleSheetsHandler(
@@ -197,13 +231,13 @@ def _build_logger(log_path: Path) -> logging.Logger:
                 worksheet_name="Logs"  # 固定のワークシート名を使用
             )
             h_sheets.setFormatter(logging.Formatter("%(message)s"))
-            h_sheets.setLevel(logging.INFO)
+            h_sheets.setLevel(logging.WARNING)  # INFO→WARNINGに変更してAPI呼び出しを削減
             h_sheets.addFilter(ContextFilter())
             logger.addHandler(h_sheets)
     except Exception as e:
         error_msg = f"Google Sheetsハンドラー追加エラー: {e}"
         print(error_msg)
-        st.error(error_msg)
+        # エラーは表示しない（起動時のノイズを減らす）
 
     logger.propagate = False
     return logger
