@@ -818,7 +818,7 @@ with left_col:
 # -------------------------------------------------
 with right_col:
     st.markdown("### 📝 質問・回答履歴")
-    chat_box = st.container(height=650)
+    chat_box = st.container(height=600)
 
     with chat_box:
         if not st.session_state.chat_history:
@@ -838,6 +838,22 @@ with right_col:
                 elif item["type"] == "image" and Path(item["path"]).exists():
                     st.image(item["path"], caption=item["caption"],
                              use_container_width=True)
+
+    # ログダウンロードボタン
+    st.markdown("---")
+    if log_file.exists():
+        with open(log_file, "r", encoding="utf-8") as f:
+            log_content = f.read()
+
+        st.download_button(
+            label="📥 詳細ログをダウンロード",
+            data=log_content,
+            file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_chat_log.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+    else:
+        st.info("ログファイルがまだ作成されていません")
 
 # =================================================
 #               ユーザー入力処理
