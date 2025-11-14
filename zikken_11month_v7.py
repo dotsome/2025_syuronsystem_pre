@@ -68,13 +68,15 @@ class GoogleDriveUploader:
             import traceback
             traceback.print_exc()
 
-    def upload_file(self, file_path: str, folder_id: str = None) -> str | None:
-        """ファイルをGoogle Driveにアップロード"""
+    def upload_file(self, file_path: str, folder_id: str = None, max_retries: int = 3) -> str | None:
+        """ファイルをGoogle Driveにアップロード（リトライ機能付き）"""
         if self.service is None:
             return None
 
         try:
-            from googleapiclient.http import MediaFileUpload
+            from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
+            from googleapiclient.errors import ResumableUploadError
+            import io
 
             file_path = Path(file_path)
             if not file_path.exists():
@@ -101,13 +103,46 @@ class GoogleDriveUploader:
             if target_folder:
                 file_metadata['parents'] = [target_folder]
 
-            # ファイルをアップロード
-            media = MediaFileUpload(str(file_path), mimetype=mime_type, resumable=True)
-            file = self.service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id, webViewLink'
-            ).execute()
+            # ファイルサイズを確認
+            file_size = file_path.stat().st_size
+
+            # 5MB以下の小さいファイルは非resumableアップロードを使用
+            # resumableアップロードはネットワークの問題でエラーになりやすい
+            if file_size < 5 * 1024 * 1024:  # 5MB
+                # 小さいファイルは一括アップロード（resumable=False）
+                with open(file_path, 'rb') as f:
+                    media = MediaIoBaseUpload(
+                        io.BytesIO(f.read()),
+                        mimetype=mime_type,
+                        resumable=False
+                    )
+                    file = self.service.files().create(
+                        body=file_metadata,
+                        media_body=media,
+                        fields='id, webViewLink'
+                    ).execute()
+            else:
+                # 大きいファイルはリトライ付きのresumableアップロード
+                for attempt in range(max_retries):
+                    try:
+                        media = MediaFileUpload(
+                            str(file_path),
+                            mimetype=mime_type,
+                            resumable=True,
+                            chunksize=1024 * 1024  # 1MBチャンク
+                        )
+                        file = self.service.files().create(
+                            body=file_metadata,
+                            media_body=media,
+                            fields='id, webViewLink'
+                        ).execute()
+                        break  # 成功したらループを抜ける
+                    except ResumableUploadError as e:
+                        if attempt < max_retries - 1:
+                            print(f"アップロード失敗（リトライ {attempt + 1}/{max_retries}）: {e}")
+                            time.sleep(2 ** attempt)  # 指数バックオフ
+                        else:
+                            raise  # 最後のリトライで失敗したら例外を投げる
 
             file_id = file.get('id')
             web_link = file.get('webViewLink')
