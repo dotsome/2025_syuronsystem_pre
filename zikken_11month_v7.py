@@ -1181,8 +1181,8 @@ elif st.session_state["authentication_status"]:
                         openai_chat,
                         "gpt-4.1",
                         st.session_state.messages,
-                        0.7,
-                        "質問への回答生成"
+                        log_label="質問への回答生成",
+                        temperature=0.7
                     )
 
                     # 両方の結果を取得（並行処理）
