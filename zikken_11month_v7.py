@@ -196,7 +196,7 @@ class GoogleSheetsLogger:
 
     def log_qa(self, user_name: str, user_number: str, q_num: int,
                question: str, answer: str, mermaid_code: str = None,
-               svg_path: str = None):
+               svg_path: str = None, drive_uploader=None):
         """質問・回答・図をGoogle Sheetsに記録（レート制限対策付き）"""
         if self.spreadsheet is None:
             return
@@ -210,18 +210,25 @@ class GoogleSheetsLogger:
 
             # SVGファイルの内容を読み込む
             svg_content = ""
+            svg_drive_link = ""
             if svg_path and Path(svg_path).exists():
                 try:
                     svg_content = Path(svg_path).read_text(encoding='utf-8')
+
+                    # Google Driveにアップロード
+                    if drive_uploader:
+                        svg_drive_link = drive_uploader.upload_file(svg_path) or ""
+
                 except Exception as e:
-                    print(f"SVG読み込みエラー: {e}")
+                    print(f"SVG読み込み/アップロードエラー: {e}")
                     svg_content = f"[SVG読み込み失敗: {svg_path}]"
 
             # QA専用ワークシートを取得/作成
             worksheet = self.get_or_create_worksheet(
                 "QA_Logs",
                 headers=["Timestamp", "User", "Number", "Question#",
-                        "Question", "Answer", "Has_Diagram", "Mermaid_Code", "SVG_Content"]
+                        "Question", "Answer", "Has_Diagram", "Mermaid_Code",
+                        "SVG_Content", "SVG_Drive_Link"]
             )
 
             if worksheet:
@@ -234,7 +241,8 @@ class GoogleSheetsLogger:
                     answer,
                     "Yes" if mermaid_code else "No",
                     mermaid_code if mermaid_code else "",
-                    svg_content if svg_content else ""
+                    svg_content if svg_content else "",
+                    svg_drive_link if svg_drive_link else ""
                 ]
                 worksheet.append_row(row_data)
                 self._last_qa_write = time.time()
@@ -649,6 +657,11 @@ logger.info("--- Session started ---")
 sheets_qa_logger = None
 if "google_spreadsheet_key" in st.secrets:
     sheets_qa_logger = GoogleSheetsLogger(st.secrets["google_spreadsheet_key"])
+
+# Google Driveアップローダーの初期化（Streamlit Cloudで有効）
+drive_uploader = None
+if "gcp_service_account" in st.secrets:
+    drive_uploader = GoogleDriveUploader()
 
 # =================================================
 #          OpenAI クライアント初期化
@@ -1213,7 +1226,8 @@ if user_input:
                 question=user_input,
                 answer=reply,
                 mermaid_code=mermaid_code,
-                svg_path=svg_file
+                svg_path=svg_file,
+                drive_uploader=drive_uploader
             )
 
     except Exception as e:

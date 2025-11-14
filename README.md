@@ -112,8 +112,16 @@ streamlit run zikken_11month_v7.py
      - [Google Cloud Console](https://console.cloud.google.com/) にアクセス
      - プロジェクトを作成または選択
      - 「APIとサービス」>「認証情報」>「サービスアカウントを作成」
+     - 「APIとサービス」>「ライブラリ」で以下のAPIを有効化：
+       - Google Sheets API
+       - Google Drive API
      - JSON形式の認証キーをダウンロード
    - サービスアカウントのメールアドレスをスプレッドシートに共有（編集権限）
+   - **（オプション）Google Drive連携**:
+     - Google Driveでファイル保存用のフォルダを作成
+     - フォルダのURLから **Folder ID** を取得
+       - URL形式: `https://drive.google.com/drive/folders/{FOLDER_ID}`
+     - サービスアカウントのメールアドレスをフォルダに共有（編集権限）
 
 4. **Secrets の設定**
    - アプリのダッシュボード > Settings > Secrets
@@ -121,6 +129,7 @@ streamlit run zikken_11month_v7.py
    - 以下の情報を入力:
      - `OPENAI_API_KEY`: 実際のOpenAI APIキー
      - `google_spreadsheet_key`: Google Sheetsのスプレッドシートキー
+     - `google_drive_folder_id`: Google DriveのフォルダID（オプション）
      - `gcp_service_account`: サービスアカウントのJSON認証情報
      - `auth.*`: 認証情報（`config.yaml`の内容）
 
@@ -128,6 +137,7 @@ streamlit run zikken_11month_v7.py
    - 自動的にアプリがデプロイされます
    - URLが発行されてアクセス可能になります
    - ログはGoogle Sheetsに自動的に記録されます
+   - SVG図はGoogle Driveに自動的にアップロードされます（設定した場合）
 
 ### 認証フロー
 
