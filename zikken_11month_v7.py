@@ -727,7 +727,8 @@ elif st.session_state["authentication_status"]:
     # 改良版 Mermaid 図生成（2段階プロセス）
     # =================================================
     @log_io(mask=None)
-    def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | None:
+    def generate_mermaid_file(question: str, story_text: str, q_num: int,
+                             user_dir_path: str, user_name: str, user_number: str) -> str | None:
         """
         2段階プロセス：
         1. GPTでざっくりMermaid図を生成
@@ -971,14 +972,14 @@ elif st.session_state["authentication_status"]:
         # ──────────────────────────
         # Step 6: Kroki APIでSVG生成
         # ──────────────────────────
-        mmd_path = Path(user_dir) / f"{st.session_state.user_name}_{st.session_state.user_number}_{q_num}.mmd"
+        mmd_path = Path(user_dir_path) / f"{user_name}_{user_number}_{q_num}.mmd"
         svg_path = mmd_path.with_suffix(".svg")
 
         # Mermaidファイルを保存
         mmd_path.write_text(final_mermaid, encoding="utf-8")
 
         # デバッグ用：生成されたMermaidコードも保存
-        debug_path = Path(user_dir) / f"debug_mermaid_{q_num}.txt"
+        debug_path = Path(user_dir_path) / f"debug_mermaid_{q_num}.txt"
         debug_content = f"""=== ROUGH MERMAID ===
     {rough_mermaid}
 
@@ -1167,7 +1168,15 @@ elif st.session_state["authentication_status"]:
 
                 with ThreadPoolExecutor(max_workers=2) as executor:
                     # 2つのタスクを並行実行
-                    diagram_future = executor.submit(generate_mermaid_file, user_input, story_text_so_far, q_num)
+                    diagram_future = executor.submit(
+                        generate_mermaid_file,
+                        user_input,
+                        story_text_so_far,
+                        q_num,
+                        str(user_dir),
+                        st.session_state.user_name,
+                        st.session_state.user_number
+                    )
                     answer_future = executor.submit(
                         openai_chat,
                         "gpt-4.1",
