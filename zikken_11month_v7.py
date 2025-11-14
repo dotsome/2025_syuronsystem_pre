@@ -291,13 +291,39 @@ def _build_logger(log_path: Path) -> logging.Logger:
 def log_io(mask: int | None = 400):
     """
     mask=None なら全文、数値ならその文字数だけログに残す
+    特定の引数名（story_text等）は自動的に省略される
     """
     def _decorator(func):
         @wraps(func)
         def _wrapper(*args, **kwargs):
             t0 = time.time()
             logger = logging.getLogger("app")
-            logger.debug(f"[IN ] {func.__name__} args={args} kwargs={kwargs}")
+
+            # 引数を省略形式に変換
+            def sanitize_arg(arg):
+                """長いテキストや特定のキーワードを含む引数を省略"""
+                if isinstance(arg, str):
+                    # 特定のキーワードで始まる長い文字列を省略
+                    if len(arg) > 500 and any(keyword in arg[:200] for keyword in ['【', '章】', 'それは、', '魔王']):
+                        return f"[本文省略: {len(arg)}文字]"
+                    # 一般的な長い文字列も省略
+                    elif len(arg) > 1000:
+                        return f"[長文省略: {len(arg)}文字]"
+                return arg
+
+            # argsを処理
+            sanitized_args = tuple(sanitize_arg(arg) for arg in args)
+
+            # kwargsを処理（特定の引数名をチェック）
+            sanitized_kwargs = {}
+            for key, value in kwargs.items():
+                if key in ['story_text', 'story_text_so_far', 'text'] and isinstance(value, str) and len(value) > 500:
+                    sanitized_kwargs[key] = f"[本文省略: {len(value)}文字]"
+                else:
+                    sanitized_kwargs[key] = sanitize_arg(value)
+
+            logger.debug(f"[IN ] {func.__name__} args={sanitized_args} kwargs={sanitized_kwargs}")
+
             try:
                 out = func(*args, **kwargs)
                 elapsed = time.time() - t0
