@@ -314,15 +314,51 @@ def log_io(mask: int | None = 400):
     return _decorator
 
 # -------------------------------------------------
-# OpenAI 呼び出しラッパ
+# OpenAI 呼び出しラッパ（処理時間計測付き）
 # -------------------------------------------------
-@log_io(300)   # プロンプト冒頭 300 文字だけ記録
-def openai_chat(model: str, messages: list[dict], **kw):
-    return client.chat.completions.create(
-        model=model,
-        messages=messages,
-        **kw
-    )
+def openai_chat(model: str, messages: list[dict], log_label: str = None, **kw):
+    """
+    OpenAI APIを呼び出し、処理時間を計測してログに記録
+
+    Args:
+        model: 使用するモデル名
+        messages: メッセージリスト
+        log_label: ログに記録するラベル（例: "質問判定", "中心人物特定"）
+        **kw: その他のパラメータ
+    """
+    logger = logging.getLogger("app")
+
+    # プロンプトの長さを計算
+    total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
+
+    start_time = time.time()
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            **kw
+        )
+        elapsed = time.time() - start_time
+
+        # トークン使用量を取得
+        usage = response.usage
+        prompt_tokens = usage.prompt_tokens if usage else 0
+        completion_tokens = usage.completion_tokens if usage else 0
+        total_tokens = usage.total_tokens if usage else 0
+
+        # ログに記録
+        log_msg = f"🤖 LLM呼び出し"
+        if log_label:
+            log_msg += f" [{log_label}]"
+        log_msg += f": model={model}, time={elapsed:.2f}s, prompt_chars={total_chars}, tokens={prompt_tokens}→{completion_tokens} (total={total_tokens})"
+
+        logger.info(log_msg)
+
+        return response
+    except Exception as e:
+        elapsed = time.time() - start_time
+        logger.error(f"❌ LLM呼び出し失敗 [{log_label}]: model={model}, time={elapsed:.2f}s, error={str(e)}")
+        raise
 
 # =================================================
 #           Streamlit セッション初期化
@@ -514,7 +550,8 @@ def is_character_question(question: str) -> bool:
                 {"role": "system", "content": "質問が登場人物に関するか判定します。"},
                 {"role": "user",   "content": prompt}
             ],
-            temperature=0
+            temperature=0,
+            log_label="登場人物質問判定"
         )
         answer = res.choices[0].message.content.strip().lower()
         return "yes" in answer
@@ -551,7 +588,8 @@ def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | N
                 {"role": "system", "content": "質問の中心人物を特定します。"},
                 {"role": "user", "content": who_prompt}
             ],
-            temperature=0
+            temperature=0,
+            log_label="中心人物特定"
         )
         main_focus = res_who.choices[0].message.content.strip().splitlines()[0]
     except Exception:
@@ -593,7 +631,8 @@ def generate_mermaid_file(question: str, story_text: str, q_num: int) -> str | N
                 {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                 {"role": "user", "content": rough_mermaid_prompt}
             ],
-            temperature=0.3
+            temperature=0.3,
+            log_label="Mermaid図ざっくり生成"
         )
         rough_mermaid = res_rough.choices[0].message.content.strip()
         # コードブロック記号を除去
@@ -639,7 +678,8 @@ Mermaid図:
                 {"role": "system", "content": "Mermaid図と本文を照合して正確な関係を抽出します。"},
                 {"role": "user", "content": csv_prompt}
             ],
-            temperature=0
+            temperature=0,
+            log_label="MermaidをCSVに変換"
         )
         csv_text = res_csv.choices[0].message.content.strip()
         logger.debug(f"[Q{q_num}] Validated CSV = {csv_text[:400]}")
@@ -962,7 +1002,8 @@ if user_input:
         resp  = openai_chat(
                     "gpt-4.1",
                     messages=st.session_state.messages,
-                    temperature=0.7
+                    temperature=0.7,
+                    log_label="質問への回答生成"
                 )
         reply = resp.choices[0].message.content.strip()
         status_placeholder.empty()
