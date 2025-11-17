@@ -785,12 +785,13 @@ elif st.session_state["authentication_status"]:
 
                     # キャッシュ作成用の呼び出し（結果は使わない）
                     _ = openai_chat(
-                        "gpt-4.1",
+                        "gpt-5.1",  # GPT-5.1 with reasoning="none" for speed
                         messages=[
                             {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                             {"role": "user", "content": warmup_prompt}
                         ],
                         temperature=0.3,
+                        reasoning="none",  # 低レイテンシモード
                         log_label="キャッシュウォームアップ"
                     )
 
@@ -896,12 +897,13 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_rough = openai_chat(
-                "gpt-4.1",  # 高速化のため
+                "gpt-5.1",  # GPT-5.1 with reasoning="none" for speed
                 messages=[
                     {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                     {"role": "user", "content": rough_mermaid_prompt}
                 ],
                 temperature=0.3,
+                reasoning="none",  # 低レイテンシモード
                 log_label="Mermaid図ざっくり生成"
             )
             rough_mermaid = res_rough.choices[0].message.content.strip()
@@ -946,12 +948,13 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_csv = openai_chat(
-                "gpt-4.1",
+                "gpt-5.1",  # GPT-5.1 with reasoning="none" for speed
                 messages=[
                     {"role": "system", "content": "Mermaid図と本文を照合して正確な関係を抽出します。"},
                     {"role": "user", "content": csv_prompt}
                 ],
                 temperature=0,
+                reasoning="none",  # 低レイテンシモード
                 log_label="MermaidをCSVに変換"
             )
             csv_text = res_csv.choices[0].message.content.strip()
