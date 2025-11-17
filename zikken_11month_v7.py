@@ -807,13 +807,12 @@ elif st.session_state["authentication_status"]:
         # ──────────────────────────
         # Step 2: 中心人物を基にざっくりMermaid図を生成
         # ──────────────────────────
+        # Prompt Caching最適化: 本文を先頭に配置
         rough_mermaid_prompt = f"""
-    以下の質問と本文を基に、「{main_focus}」を中心とした主要登場人物の関係図をMermaid形式で生成してください。
-
-    質問: {question}
-
     本文:
     {story_text}
+
+    質問: {question}
 
     要件:
     - graph LR または graph TD で開始
@@ -828,9 +827,10 @@ elif st.session_state["authentication_status"]:
     - 必要に応じてsubgraphでグループ化（例: 勇者パーティー、魔王軍など）
     - {main_focus}に直接関わらない人物間の関係は省略する
 
+    以上の質問と本文を基に、「{main_focus}」を中心とした主要登場人物の関係図をMermaid形式で生成してください。
     出力はMermaidコードのみ（説明不要）
     """
-    
+
         try:
             res_rough = openai_chat(
                 "gpt-4.1",  # 高速化のため
@@ -852,15 +852,13 @@ elif st.session_state["authentication_status"]:
         # ──────────────────────────
         # Step 3: Mermaid図をCSVに変換（検証のため）
         # ──────────────────────────
+        # Prompt Caching最適化: 本文を先頭に配置
         csv_prompt = f"""
-    以下のMermaid図から人物関係を抽出してCSV形式で出力してください。
-    「{main_focus}」を中心とした主要人物の関係のみを抽出してください。
+    本文（参考）:
+    {story_text}
 
     Mermaid図:
     {rough_mermaid}
-
-    本文（参考）:
-    {story_text}
 
     出力形式:
     主体,関係タイプ,関係詳細,客体,グループ
@@ -879,6 +877,8 @@ elif st.session_state["authentication_status"]:
     - {main_focus}に直接関わる人物を優先
     - {main_focus}に直接関わらない人物間の関係は省略
     - ヘッダーは不要
+
+    以上のMermaid図から「{main_focus}」を中心とした主要人物の関係のみを抽出してCSV形式で出力してください。
     """
 
         try:
