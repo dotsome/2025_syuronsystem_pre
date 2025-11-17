@@ -785,13 +785,12 @@ elif st.session_state["authentication_status"]:
 
                     # キャッシュ作成用の呼び出し（結果は使わない）
                     _ = openai_chat(
-                        "gpt-5.1",  # GPT-5.1 with reasoning="none" for speed
+                        "gpt-5.1",  # GPT-5.1 (デフォルトでreasoning="none"相当)
                         messages=[
                             {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                             {"role": "user", "content": warmup_prompt}
                         ],
                         temperature=0.3,
-                        reasoning="none",  # 低レイテンシモード
                         log_label="キャッシュウォームアップ"
                     )
 
@@ -853,7 +852,7 @@ elif st.session_state["authentication_status"]:
     
         try:
             res_who = openai_chat(
-                "gpt-4.1",
+                "gpt-5.1",
                 messages=[
                     {"role": "system", "content": "質問の中心人物を特定します。"},
                     {"role": "user", "content": who_prompt}
@@ -897,13 +896,12 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_rough = openai_chat(
-                "gpt-5.1",  # GPT-5.1 with reasoning="none" for speed
+                "gpt-5.1",  # GPT-5.1 (デフォルトでreasoning="none"相当)
                 messages=[
                     {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                     {"role": "user", "content": rough_mermaid_prompt}
                 ],
                 temperature=0.3,
-                reasoning="none",  # 低レイテンシモード
                 log_label="Mermaid図ざっくり生成"
             )
             rough_mermaid = res_rough.choices[0].message.content.strip()
@@ -948,13 +946,12 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_csv = openai_chat(
-                "gpt-5.1",  # GPT-5.1 with reasoning="none" for speed
+                "gpt-5.1",  # GPT-5.1 (デフォルトでreasoning="none"相当)
                 messages=[
                     {"role": "system", "content": "Mermaid図と本文を照合して正確な関係を抽出します。"},
                     {"role": "user", "content": csv_prompt}
                 ],
                 temperature=0,
-                reasoning="none",  # 低レイテンシモード
                 log_label="MermaidをCSVに変換"
             )
             csv_text = res_csv.choices[0].message.content.strip()
@@ -1291,7 +1288,7 @@ elif st.session_state["authentication_status"]:
                     )
                     answer_future = executor.submit(
                         openai_chat,
-                        "gpt-4.1",
+                        "gpt-5.1",
                         messages,
                         log_label="質問への回答生成",
                         temperature=0.7
@@ -1322,7 +1319,7 @@ elif st.session_state["authentication_status"]:
                 status_placeholder.info("💭 回答を生成中...")
 
                 resp = openai_chat(
-                    "gpt-4.1",
+                    "gpt-5.1",
                     messages=st.session_state.messages,
                     temperature=0.7,
                     log_label="質問への回答生成"
