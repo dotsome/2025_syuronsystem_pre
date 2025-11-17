@@ -61,23 +61,23 @@ TEST_MODELS = {
 TEST_QUESTIONS = [
     {
         "id": "Q1",
-        "question": "今までの内容で登場した人物の関係を教えてください。",
-        "type": "character_focused"
+        "question": "ミナって誰だっけ？",
+        "type": "character_identification"
     },
     {
         "id": "Q2",
-        "question": "主人公が最初に出会った人物は誰ですか?",
-        "type": "simple"
+        "question": "タニアとカナデの関係性について教えて",
+        "type": "relationship"
     },
     {
         "id": "Q3",
-        "question": "物語の中心人物とその周りの人間関係について詳しく説明してください。",
-        "type": "complex"
+        "question": "レインはアリオスのことがなんで嫌いなの？",
+        "type": "character_motivation"
     },
     {
         "id": "Q4",
-        "question": "登場人物同士の対立や協力関係はありますか?",
-        "type": "relationship_focused"
+        "question": "タニアとリーンの関係性について教えて",
+        "type": "relationship"
     }
 ]
 
@@ -274,11 +274,15 @@ graph TD
         {"role": "user", "content": prompt}
     ]
 
+    # gpt-5-miniはtemperatureをサポートしないため、モデルによって分岐
+    kwargs = {"log_label": f"Mermaid生成({model})"}
+    if "gpt-5-mini" not in model:
+        kwargs["temperature"] = 0.3
+
     return openai_chat_timed(
         model=model,
         messages=messages,
-        log_label=f"Mermaid生成({model})",
-        temperature=0.3
+        **kwargs
     )
 
 
@@ -298,11 +302,15 @@ from,to,label"""
         {"role": "user", "content": prompt}
     ]
 
+    # gpt-5-miniはtemperatureをサポートしないため、モデルによって分岐
+    kwargs = {"log_label": f"CSV変換({model})"}
+    if "gpt-5-mini" not in model:
+        kwargs["temperature"] = 0.0
+
     return openai_chat_timed(
         model=model,
         messages=messages,
-        log_label=f"CSV変換({model})",
-        temperature=0.0
+        **kwargs
     )
 
 
@@ -326,11 +334,15 @@ def process_answer_generation(model: str, story_text: str, question: str) -> Dic
         {"role": "user", "content": prompt}
     ]
 
+    # gpt-5-miniはtemperatureをサポートしないため、モデルによって分岐
+    kwargs = {"log_label": f"回答生成({model})"}
+    if "gpt-5-mini" not in model:
+        kwargs["temperature"] = 0.7
+
     return openai_chat_timed(
         model=model,
         messages=messages,
-        log_label=f"回答生成({model})",
-        temperature=0.7
+        **kwargs
     )
 
 
