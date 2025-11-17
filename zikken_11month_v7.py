@@ -743,6 +743,69 @@ elif st.session_state["authentication_status"]:
     total_pages    = len(pages_all)
 
     # =================================================
+    #  プロンプトキャッシュのウォームアップ（初回のみ）
+    # =================================================
+    def warmup_prompt_cache():
+        """
+        セッション開始時にダミー質問でプロンプトキャッシュを作成
+        これにより、ユーザーの最初の質問から高速な応答が可能になる
+        """
+        if "cache_warmed_up" not in st.session_state:
+            st.session_state.cache_warmed_up = False
+
+        if not st.session_state.cache_warmed_up:
+            with st.spinner("🔥 システムを準備中...（初回のみ、数秒お待ちください）"):
+                try:
+                    # START_PAGEまでの本文でキャッシュを作成
+                    warmup_story_text = "\n\n".join(pages_all[:START_PAGE + 1])
+
+                    # ダミー質問でMermaid図生成プロンプトを実行（キャッシュ作成のみ）
+                    warmup_prompt = f"""
+    本文:
+    {warmup_story_text}
+
+    質問: 主人公について教えてください
+
+    要件:
+    - graph LR または graph TD で開始
+    - **主人公を中心**に、直接関わる主要人物のみを含める
+    - 登場人物は物語上重要な人物に限定する（5-10人程度）
+    - 関係性の表現：
+      * 双方向の関係: <--> を使用（例: 友人、仲間、恋人など）
+      * 一方向の関係: --> を使用（例: 上司→部下、師匠→弟子など）
+      * 点線矢印 -.-> は補助的な関係に使用
+    - **重要**: 同じ2人の間の関係は最大2本まで（AからB、BからA）
+    - エッジには簡潔な日本語ラベルを付ける（5文字以内推奨）
+    - 必要に応じてsubgraphでグループ化（例: 勇者パーティー、魔王軍など）
+    - 主人公に直接関わらない人物間の関係は省略する
+
+    以上の質問と本文を基に、「主人公」を中心とした主要登場人物の関係図をMermaid形式で生成してください。
+    出力はMermaidコードのみ（説明不要）
+    """
+
+                    # キャッシュ作成用の呼び出し（結果は使わない）
+                    _ = openai_chat(
+                        "gpt-4.1",
+                        messages=[
+                            {"role": "system", "content": "Mermaid図を生成する専門家です。"},
+                            {"role": "user", "content": warmup_prompt}
+                        ],
+                        temperature=0.3,
+                        log_label="キャッシュウォームアップ"
+                    )
+
+                    st.session_state.cache_warmed_up = True
+                    logger.info("✅ Prompt Cache ウォームアップ完了")
+
+                except Exception as e:
+                    logger.warning(f"⚠️ キャッシュウォームアップ失敗（続行します）: {e}")
+                    # エラーが発生してもシステムは続行
+                    st.session_state.cache_warmed_up = True
+
+    # セッション初回のみウォームアップを実行
+    warmup_prompt_cache()
+
+    # =================================================
     # GPT 4o：登場人物質問の判定
     # =================================================
     @log_io()
