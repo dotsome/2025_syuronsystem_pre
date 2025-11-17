@@ -65,6 +65,7 @@ def generate_character_summary(story_text: str) -> str:
     """
     print("📝 登場人物を網羅したあらすじを生成中...")
     print(f"   - 本文文字数: {len(story_text):,} 文字")
+    print(f"   - GPT-5.1にリクエスト送信中...")
     print()
 
     prompt = f"""
@@ -109,23 +110,35 @@ def generate_character_summary(story_text: str) -> str:
 """
 
     try:
-        response = client.chat.completions.create(
+        print("🔄 GPT-5.1からの応答をストリーミング受信中...")
+        print("-" * 80)
+
+        # ストリーミングで応答を受信
+        stream = client.chat.completions.create(
             model="gpt-5.1",
             messages=[
                 {"role": "system", "content": "あなたは物語の登場人物を詳細に分析し、網羅的なあらすじを作成する専門家です。"},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3
+            temperature=0.3,
+            stream=True
         )
 
-        summary = response.choices[0].message.content.strip()
+        summary = ""
+        chunk_count = 0
 
-        # 使用トークン数を表示
-        usage = response.usage
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                summary += content
+                print(content, end="", flush=True)
+                chunk_count += 1
+
+        print()
+        print("-" * 80)
         print(f"✅ あらすじ生成完了")
-        print(f"   - プロンプトトークン: {usage.prompt_tokens:,}")
-        print(f"   - 完了トークン: {usage.completion_tokens:,}")
-        print(f"   - 合計トークン: {usage.total_tokens:,}")
+        print(f"   - 受信チャンク数: {chunk_count:,}")
+        print(f"   - 生成文字数: {len(summary):,} 文字")
         print()
 
         return summary
