@@ -748,6 +748,11 @@ elif st.session_state["authentication_status"]:
     def warmup_prompt_cache():
         """
         セッション開始時にダミー質問でプロンプトキャッシュを作成
+
+        ウォームアップ内容:
+        1. 本文キャッシュ（START_PAGEまで）
+        2. 登場人物情報キャッシュ（character_summary.txt）
+
         これにより、ユーザーの最初の質問から高速な応答が可能になる
         """
         if "cache_warmed_up" not in st.session_state:
@@ -756,11 +761,11 @@ elif st.session_state["authentication_status"]:
         if not st.session_state.cache_warmed_up:
             with st.spinner("🔥 システムを準備中...（初回のみ、数秒お待ちください）"):
                 try:
-                    # START_PAGEまでの本文でキャッシュを作成
+                    # 1. START_PAGEまでの本文でキャッシュを作成
                     warmup_story_text = "\n\n".join(pages_all[:START_PAGE + 1])
 
-                    # ダミー質問でMermaid図生成プロンプトを実行（キャッシュ作成のみ）
-                    warmup_prompt = f"""
+                    # ダミー質問でMermaid図生成プロンプトを実行（本文キャッシュ作成）
+                    warmup_prompt_story = f"""
     本文:
     {warmup_story_text}
 
@@ -783,16 +788,57 @@ elif st.session_state["authentication_status"]:
     出力はMermaidコードのみ（説明不要）
     """
 
-                    # キャッシュ作成用の呼び出し（結果は使わない）
+                    # 本文キャッシュ作成
                     _ = openai_chat(
-                        "gpt-5.1",  # GPT-5.1 (デフォルトでreasoning="none"相当)
+                        "gpt-5.1",
                         messages=[
                             {"role": "system", "content": "Mermaid図を生成する専門家です。"},
-                            {"role": "user", "content": warmup_prompt}
+                            {"role": "user", "content": warmup_prompt_story}
                         ],
                         temperature=0.3,
-                        log_label="キャッシュウォームアップ"
+                        log_label="キャッシュウォームアップ（本文）"
                     )
+
+                    # 2. 登場人物情報でキャッシュを作成
+                    # character_summary.txtを読み込み（この時点でセッションキャッシュにも保存される）
+                    try:
+                        summary_path = Path("character_summary.txt")
+                        if summary_path.exists():
+                            character_summary = summary_path.read_text(encoding="utf-8")
+                            st.session_state.character_summary_cache = character_summary
+
+                            # 登場人物情報キャッシュ作成
+                            warmup_prompt_character = f"""
+登場人物情報:
+{character_summary}
+
+---
+
+質問: 主人公について教えてください
+
+この質問の中心となる登場人物の名前を1つだけ答えてください。
+
+要件:
+- 登場人物情報に記載されている正確な人物名で回答
+- 人物名のみを1行で出力（説明不要）
+
+回答:
+"""
+
+                            _ = openai_chat(
+                                "gpt-5.1",
+                                messages=[
+                                    {"role": "system", "content": "質問の中心人物を特定します。"},
+                                    {"role": "user", "content": warmup_prompt_character}
+                                ],
+                                temperature=0,
+                                log_label="キャッシュウォームアップ（登場人物）"
+                            )
+
+                            logger.info(f"✅ character_summary.txt キャッシュ作成完了（{len(character_summary):,} 文字）")
+
+                    except Exception as e:
+                        logger.warning(f"⚠️ 登場人物情報キャッシュ作成失敗（続行します）: {e}")
 
                     st.session_state.cache_warmed_up = True
                     logger.info("✅ Prompt Cache ウォームアップ完了")
@@ -806,14 +852,66 @@ elif st.session_state["authentication_status"]:
     warmup_prompt_cache()
 
     # =================================================
-    # GPT 4o：登場人物質問の判定
+    # 登場人物あらすじを読み込み（セッションごとに1回のみ）
+    # =================================================
+    def load_character_summary() -> str:
+        """
+        character_summary.txtを読み込む
+        セッション状態にキャッシュして、複数回の読み込みを防止
+        """
+        # セッション状態にキャッシュがあればそれを返す
+        if "character_summary_cache" in st.session_state:
+            return st.session_state.character_summary_cache
+
+        try:
+            summary_path = Path("character_summary.txt")
+            if summary_path.exists():
+                summary = summary_path.read_text(encoding="utf-8")
+                # セッション状態にキャッシュ
+                st.session_state.character_summary_cache = summary
+                logger.info(f"character_summary.txt を読み込みました（{len(summary):,} 文字）")
+                return summary
+            else:
+                logger.warning("character_summary.txt が見つかりません")
+                return ""
+        except Exception as e:
+            logger.exception(f"character_summary.txt 読み込みエラー: {e}")
+            return ""
+
+    # =================================================
+    # GPT 5.1：登場人物質問の判定（character_summary.txt使用）
     # =================================================
     @log_io()
-    def is_character_question(question: str) -> bool:
-        prompt = f"以下の質問が『登場人物』に関するものか Yes / No で答えてください。\n\n質問: {question}"
+    def is_character_question(question: str, character_summary: str) -> bool:
+        """
+        質問が登場人物に関するものかを判定
+
+        Args:
+            question: ユーザーの質問
+            character_summary: 登場人物を網羅したあらすじ（character_summary.txt）
+
+        Returns:
+            bool: 登場人物に関する質問ならTrue
+        """
+        # Prompt Caching最適化: 登場人物情報を先頭に配置
+        prompt = f"""
+登場人物情報:
+{character_summary}
+
+---
+
+質問: {question}
+
+この質問が「登場人物」に関するものかを判定してください。
+判定基準:
+- 登場人物の名前、性格、行動、関係性などについて尋ねている → Yes
+- ストーリー全体、世界観、テーマなどについて尋ねている → No
+
+回答: Yes / No のみを出力してください。
+"""
         try:
             res = openai_chat(
-                "gpt-4o",
+                "gpt-5.1",
                 messages=[
                     {"role": "system", "content": "質問が登場人物に関するか判定します。"},
                     {"role": "user",   "content": prompt}
@@ -832,24 +930,44 @@ elif st.session_state["authentication_status"]:
     # =================================================
     @log_io(mask=None)
     def generate_mermaid_file(question: str, story_text: str, q_num: int,
-                             user_dir_path: str, user_name: str, user_number: str) -> str | None:
+                             user_dir_path: str, user_name: str, user_number: str,
+                             character_summary: str) -> str | None:
         """
         2段階プロセス：
         1. GPTでざっくりMermaid図を生成
         2. それをCSVに変換して検証
         3. ルールベースで最終的なMermaid図を構築
+
+        Args:
+            question: ユーザーの質問
+            story_text: 物語本文
+            q_num: 質問番号
+            user_dir_path: ユーザーディレクトリパス
+            user_name: ユーザー名
+            user_number: ユーザー番号
+            character_summary: 登場人物を網羅したあらすじ
         """
         # ──────────────────────────
-        # Step 1: 質問の中心人物を特定
+        # Step 1: 質問の中心人物を特定（character_summary使用）
+        # Prompt Caching最適化: 登場人物情報を先頭に配置
         # ──────────────────────────
         who_prompt = f"""
-    質問「{question}」の中心となる登場人物の名前を1つだけ答えてください。
-    本文に登場する人物名で答えること。
+登場人物情報:
+{character_summary}
 
-    本文（冒頭）:
-    {story_text[:1000]}
-    """
-    
+---
+
+質問: {question}
+
+この質問の中心となる登場人物の名前を1つだけ答えてください。
+
+要件:
+- 登場人物情報に記載されている正確な人物名で回答
+- 人物名のみを1行で出力（説明不要）
+
+回答:
+"""
+
         try:
             res_who = openai_chat(
                 "gpt-5.1",
@@ -864,7 +982,7 @@ elif st.session_state["authentication_status"]:
         except Exception:
             logger.exception("[Mermaid] main focus extraction error")
             main_focus = "主人公"
-    
+
         logger.info(f"[Q{q_num}] Main focus = {main_focus}")
 
         # ──────────────────────────
@@ -1241,8 +1359,11 @@ elif st.session_state["authentication_status"]:
 
         story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
 
+        # 登場人物あらすじを読み込み
+        character_summary = load_character_summary()
+
         # 登場人物質問かどうか判定
-        is_char_question = is_character_question(user_input)
+        is_char_question = is_character_question(user_input, character_summary)
 
         # 回答生成用のプロンプトを準備
         prompt = f"""
@@ -1284,7 +1405,8 @@ elif st.session_state["authentication_status"]:
                         q_num,
                         str(user_dir),
                         user_name,
-                        user_number
+                        user_number,
+                        character_summary
                     )
                     answer_future = executor.submit(
                         openai_chat,
