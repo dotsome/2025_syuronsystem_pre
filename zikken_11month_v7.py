@@ -1454,7 +1454,7 @@ elif st.session_state["authentication_status"]:
                     )
                     answer_future = executor.submit(
                         openai_chat,
-                        "gpt-5.1",
+                        "gpt-4.1",  # GPT-4.1を使用（高速化）
                         messages,
                         log_label="質問への回答生成",
                         temperature=0.7
@@ -1485,7 +1485,7 @@ elif st.session_state["authentication_status"]:
                 status_placeholder.info("💭 回答を生成中...")
 
                 resp = openai_chat(
-                    "gpt-5.1",
+                    "gpt-4.1",  # GPT-4.1を使用（高速化）
                     messages=messages,
                     temperature=0.7,
                     log_label="質問への回答生成"
