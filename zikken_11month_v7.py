@@ -514,16 +514,18 @@ def log_io(mask: int | None = 400):
     return _decorator
 
 # -------------------------------------------------
-# OpenAI 呼び出しラッパ（処理時間計測付き）
+# OpenAI 呼び出しラッパ（処理時間計測付き + リトライ機能）
 # -------------------------------------------------
-def openai_chat(model: str, messages: list[dict], log_label: str = None, **kw):
+def openai_chat(model: str, messages: list[dict], log_label: str = None, max_retries: int = 3, **kw):
     """
     OpenAI APIを呼び出し、処理時間を計測してログに記録
+    500エラー時は自動リトライ（指数バックオフ）
 
     Args:
         model: 使用するモデル名
         messages: メッセージリスト
         log_label: ログに記録するラベル（例: "質問判定", "中心人物特定"）
+        max_retries: 最大リトライ回数（デフォルト: 3）
         **kw: その他のパラメータ
     """
     logger = logging.getLogger("app")
@@ -531,34 +533,76 @@ def openai_chat(model: str, messages: list[dict], log_label: str = None, **kw):
     # プロンプトの長さを計算
     total_chars = sum(len(str(msg.get('content', ''))) for msg in messages)
 
-    start_time = time.time()
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            **kw
-        )
-        elapsed = time.time() - start_time
+    for attempt in range(max_retries):
+        start_time = time.time()
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                **kw
+            )
+            elapsed = time.time() - start_time
 
-        # トークン使用量を取得
-        usage = response.usage
-        prompt_tokens = usage.prompt_tokens if usage else 0
-        completion_tokens = usage.completion_tokens if usage else 0
-        total_tokens = usage.total_tokens if usage else 0
+            # トークン使用量を取得
+            usage = response.usage
+            prompt_tokens = usage.prompt_tokens if usage else 0
+            completion_tokens = usage.completion_tokens if usage else 0
+            total_tokens = usage.total_tokens if usage else 0
 
-        # ログに記録
-        log_msg = f"🤖 LLM呼び出し"
-        if log_label:
-            log_msg += f" [{log_label}]"
-        log_msg += f": model={model}, time={elapsed:.2f}s, prompt_chars={total_chars}, tokens={prompt_tokens}→{completion_tokens} (total={total_tokens})"
+            # ログに記録
+            log_msg = f"🤖 LLM呼び出し"
+            if log_label:
+                log_msg += f" [{log_label}]"
+            log_msg += f": model={model}, time={elapsed:.2f}s, prompt_chars={total_chars}, tokens={prompt_tokens}→{completion_tokens} (total={total_tokens})"
 
-        logger.info(log_msg)
+            # リトライした場合は成功を明記
+            if attempt > 0:
+                log_msg += f" (リトライ{attempt}回目で成功)"
 
-        return response
-    except Exception as e:
-        elapsed = time.time() - start_time
-        logger.error(f"❌ LLM呼び出し失敗 [{log_label}]: model={model}, time={elapsed:.2f}s, error={str(e)}")
-        raise
+            logger.info(log_msg)
+
+            return response
+
+        except openai.InternalServerError as e:
+            # 500エラー: サーバー側のエラー
+            elapsed = time.time() - start_time
+
+            if attempt < max_retries - 1:
+                # まだリトライ可能
+                wait_time = 2 ** attempt  # 指数バックオフ: 1秒, 2秒, 4秒...
+                logger.warning(
+                    f"⚠️ LLM呼び出し一時エラー [{log_label}]: model={model}, time={elapsed:.2f}s, "
+                    f"error={str(e)}, リトライ{attempt + 1}/{max_retries} ({wait_time}秒後)"
+                )
+                time.sleep(wait_time)
+            else:
+                # 最後のリトライも失敗
+                logger.error(
+                    f"❌ LLM呼び出し失敗（{max_retries}回リトライ後） [{log_label}]: "
+                    f"model={model}, time={elapsed:.2f}s, error={str(e)}"
+                )
+                raise
+
+        except openai.RateLimitError as e:
+            # レート制限エラー
+            elapsed = time.time() - start_time
+
+            if attempt < max_retries - 1:
+                wait_time = 5 * (2 ** attempt)  # レート制限は長めに待つ: 5秒, 10秒, 20秒...
+                logger.warning(
+                    f"⚠️ レート制限エラー [{log_label}]: model={model}, time={elapsed:.2f}s, "
+                    f"リトライ{attempt + 1}/{max_retries} ({wait_time}秒後)"
+                )
+                time.sleep(wait_time)
+            else:
+                logger.error(f"❌ レート制限エラー（{max_retries}回リトライ後） [{log_label}]: model={model}, time={elapsed:.2f}s")
+                raise
+
+        except Exception as e:
+            # その他のエラー（リトライしない）
+            elapsed = time.time() - start_time
+            logger.error(f"❌ LLM呼び出し失敗 [{log_label}]: model={model}, time={elapsed:.2f}s, error={str(e)}")
+            raise
 
 # =================================================
 #           Streamlit セッション初期化
