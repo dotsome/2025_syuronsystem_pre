@@ -572,10 +572,7 @@ init_state("user_number",      "")
 init_state("profile_completed", False)  # プロファイル入力完了フラグ
 init_state("question_number",  0)
 init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE）
-init_state("messages", [
-    {"role": "system",
-     "content": "あなたは読んでいる小説について質問に答えるアシスタントです。"}
-])
+# messages は毎回リセットするため、セッション状態では管理しない
 init_state("chat_history",     [])
 
 # =================================================
@@ -1365,20 +1362,24 @@ elif st.session_state["authentication_status"]:
         # 登場人物質問かどうか判定
         is_char_question = is_character_question(user_input, character_summary)
 
-        # 回答生成用のプロンプトを準備
-        prompt = f"""
-    以下はユーザーがこれまでに読んだ小説本文です。
+        # 毎回新しいmessagesを作成（Prompt Caching最適化）
+        # キャッシュ可能な本文を先頭に配置
+        prompt = f"""以下はユーザーがこれまでに読んだ小説本文です。
 
-    ----- 本文ここから -----
-    {story_text_so_far}
-    ----- 本文ここまで -----
+----- 本文ここから -----
+{story_text_so_far}
+----- 本文ここまで -----
 
-    # 指示
-    この本文の内容を根拠にユーザーの質問に日本語で丁寧に答えてください。
-    """
-        st.session_state.messages.append(
-            {"role": "user", "content": prompt + "\n\n質問: " + user_input}
-        )
+# 指示
+この本文の内容を根拠にユーザーの質問に日本語で丁寧に答えてください。
+
+質問: {user_input}"""
+
+        # 毎回新しいmessagesを作成（トークン爆発を防ぐ）
+        messages = [
+            {"role": "system", "content": "あなたは読んでいる小説について質問に答えるアシスタントです。"},
+            {"role": "user", "content": prompt}
+        ]
 
         # 並行処理の準備
         svg_file = None
@@ -1394,7 +1395,6 @@ elif st.session_state["authentication_status"]:
                 # スレッドに渡す値を事前に取得（Streamlitコンテキストの外で使用するため）
                 user_name = st.session_state.user_name
                 user_number = st.session_state.user_number
-                messages = st.session_state.messages
 
                 with ThreadPoolExecutor(max_workers=2) as executor:
                     # 2つのタスクを並行実行
@@ -1442,19 +1442,17 @@ elif st.session_state["authentication_status"]:
 
                 resp = openai_chat(
                     "gpt-5.1",
-                    messages=st.session_state.messages,
+                    messages=messages,
                     temperature=0.7,
                     log_label="質問への回答生成"
                 )
                 reply = resp.choices[0].message.content.strip()
                 status_placeholder.empty()
 
-            # 回答を履歴に追加
+            # 回答を履歴に追加（表示用のみ）
             st.session_state.chat_history.append(
                 {"type": "answer", "content": reply}
             )
-            st.session_state.messages.append(
-                {"role": "assistant", "content": reply})
             logger.info(f"[A{q_num}] 回答生成完了")
 
             # Google SheetsにQAログを記録
