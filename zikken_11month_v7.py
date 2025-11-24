@@ -1126,7 +1126,18 @@ elif st.session_state["authentication_status"]:
             """
             CSVデータから正確なMermaid図を構築
             重複する関係を統合し、同じペア間の関係を最大2本（双方向）に制限
+
+            改善点:
+            - CSVヘッダー行をスキップ
+            - メタノード（不明、主体、客体など）をフィルタリング
+            - 中心人物の名前マッチングを改善（部分一致）
             """
+            # フィルタリング対象のメタノード
+            INVALID_NODES = {
+                '不明', '主体', '客体', 'グループ', '関係タイプ', '関係詳細',
+                '?', '？', 'None', 'none', 'null', 'NULL', ''
+            }
+
             # ノードとエッジの収集
             nodes = set()
             edges = []
@@ -1134,7 +1145,11 @@ elif st.session_state["authentication_status"]:
             edge_map = {}  # (src, dst)のペアをキーにして重複チェック
 
             reader = csv.reader(csv_text.splitlines())
-            for row in reader:
+            for i, row in enumerate(reader):
+                # ヘッダー行をスキップ
+                if i == 0 and row[0].strip() in ['主体', '関係', 'source', 'Source']:
+                    continue
+
                 if len(row) < 4:
                     continue
 
@@ -1143,6 +1158,10 @@ elif st.session_state["authentication_status"]:
                 rel_label = row[2].strip() if len(row) > 2 else "関係"
                 dst = row[3].strip() if len(row) > 3 else ""
                 group = row[4].strip() if len(row) > 4 else ""
+
+                # メタノードをフィルタリング
+                if src in INVALID_NODES or dst in INVALID_NODES:
+                    continue
 
                 if not src or not dst:
                     continue
@@ -1220,9 +1239,17 @@ elif st.session_state["authentication_status"]:
                     else:
                         lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
         
-            # 中心人物の強調
-            if main_focus and main_focus in node_ids:
-                lines.append(f'\n    style {node_ids[main_focus]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+            # 中心人物の強調（部分一致で検索）
+            if main_focus:
+                # main_focusが完全一致で存在するか確認
+                if main_focus in node_ids:
+                    lines.append(f'\n    style {node_ids[main_focus]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                else:
+                    # 部分一致で検索（例: "レイン・シュラウド" が "レイン" にマッチ）
+                    for node_name in node_ids:
+                        if main_focus in node_name or node_name in main_focus:
+                            lines.append(f'\n    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                            break  # 最初にマッチしたノードのみをハイライト
         
             return '\n'.join(lines)
 
