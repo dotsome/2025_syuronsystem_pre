@@ -829,15 +829,26 @@ elif st.session_state["authentication_status"]:
     出力はMermaidコードのみ（説明不要）
     """
 
-                    # 本文キャッシュ作成
+                    # 本文キャッシュ作成（Mermaid生成で使用するgpt-4.1でキャッシュ）
                     _ = openai_chat(
-                        "gpt-5.1",
+                        "gpt-4.1",
                         messages=[
                             {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                             {"role": "user", "content": warmup_prompt_story}
                         ],
                         temperature=0.3,
-                        log_label="キャッシュウォームアップ（本文）"
+                        log_label="キャッシュウォームアップ（本文・gpt-4.1）"
+                    )
+
+                    # 回答生成で使用するgpt-4oでもキャッシュ作成
+                    _ = openai_chat(
+                        "gpt-4o",
+                        messages=[
+                            {"role": "system", "content": "質問に回答するアシスタントです。"},
+                            {"role": "user", "content": warmup_prompt_story}
+                        ],
+                        temperature=0.7,
+                        log_label="キャッシュウォームアップ（本文・gpt-4o）"
                     )
 
                     # 2. 登場人物情報でキャッシュを作成
