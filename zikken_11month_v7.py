@@ -1084,7 +1084,7 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_rough = openai_chat(
-                "gpt-5.1",  # GPT-5.1 (デフォルトでreasoning="none"相当)
+                "gpt-4.1",  # GPT-4.1を使用（高速化）
                 messages=[
                     {"role": "system", "content": "Mermaid図を生成する専門家です。"},
                     {"role": "user", "content": rough_mermaid_prompt}
@@ -1134,7 +1134,7 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_csv = openai_chat(
-                "gpt-5.1",  # GPT-5.1 (デフォルトでreasoning="none"相当)
+                "gpt-4.1",  # GPT-4.1を使用（高速化）
                 messages=[
                     {"role": "system", "content": "Mermaid図と本文を照合して正確な関係を抽出します。"},
                     {"role": "user", "content": csv_prompt}
@@ -1510,7 +1510,7 @@ elif st.session_state["authentication_status"]:
                     )
                     answer_future = executor.submit(
                         openai_chat,
-                        "gpt-4.1",  # GPT-4.1を使用（高速化）
+                        "gpt-4o",  # GPT-4oを使用（高速化）
                         messages,
                         log_label="質問への回答生成",
                         temperature=0.7
@@ -1541,7 +1541,7 @@ elif st.session_state["authentication_status"]:
                 status_placeholder.info("💭 回答を生成中...")
 
                 resp = openai_chat(
-                    "gpt-4.1",  # GPT-4.1を使用（高速化）
+                    "gpt-4o",  # GPT-4oを使用（高速化）
                     messages=messages,
                     temperature=0.7,
                     log_label="質問への回答生成"

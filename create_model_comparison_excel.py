@@ -88,35 +88,27 @@ def create_comparison_excel(json_file: str, output_excel: str):
 
     print(f"\n📊 {len(results)}件のテスト結果を処理します\n")
 
-    # Mermaid画像ディレクトリを作成
-    image_dir = Path("mermaid_images")
-    image_dir.mkdir(exist_ok=True)
-
-    # Mermaidファイルを画像に変換
-    print("🖼️  Mermaid図を画像に変換中...")
+    # 既存のPNG画像を使用
+    print("🖼️  既存のMermaid図を読み込み中...")
+    image_dir = Path("mermaid_outputs")
     image_map = {}
+
     for result in results:
-        mermaid_file_info = result.get('mermaid_file', {})
-        relative_path = mermaid_file_info.get('relative_path', '')
+        q_id = result['question_id']
+        mermaid_model = result['mermaid_model']
+        answer_model = result['answer_model']
 
-        if not relative_path:
-            continue
+        # PNG画像ファイル名を生成
+        png_file = image_dir / f"{q_id}_{mermaid_model}_{answer_model}.png"
 
-        mermaid_file = Path(relative_path)
-        if not mermaid_file.exists():
-            print(f"  ⚠️  ファイルが見つかりません: {mermaid_file}")
-            continue
-
-        # 画像ファイル名を生成
-        png_file = image_dir / mermaid_file.with_suffix('.png').name
-
-        # 変換
-        success = convert_mermaid_to_png(mermaid_file, png_file)
-        if success:
-            key = f"{result['question_id']}_{result['mermaid_model']}_{result['answer_model']}"
+        if png_file.exists():
+            key = f"{q_id}_{mermaid_model}_{answer_model}"
             image_map[key] = png_file
+            print(f"  ✅ {png_file.name}")
+        else:
+            print(f"  ⚠️  画像が見つかりません: {png_file.name}")
 
-    print(f"\n✅ {len(image_map)}個の画像を生成しました\n")
+    print(f"\n✅ {len(image_map)}個の画像を読み込みました\n")
 
     # Excelワークブックを作成
     print("📝 Excelファイルを作成中...")
@@ -213,7 +205,12 @@ def create_comparison_excel(json_file: str, output_excel: str):
     ws_summary.merge_cells('A1:F1')
 
     # サマリーヘッダー
-    summary_headers = ['Mermaidモデル', '回答モデル', '平均時間(秒)', '最小時間(秒)', '最大時間(秒)', 'テスト数']
+    summary_headers = [
+        'Mermaidモデル', '回答モデル',
+        '平均合計時間(秒)', '最小合計時間(秒)', '最大合計時間(秒)',
+        '平均Mermaid生成(秒)', '平均CSV変換(秒)', '平均回答生成(秒)',
+        'テスト数'
+    ]
     ws_summary.append([''] * len(summary_headers))
     for col, header in enumerate(summary_headers, 1):
         cell = ws_summary.cell(row=2, column=col)
@@ -227,22 +224,46 @@ def create_comparison_excel(json_file: str, output_excel: str):
     for result in results:
         key = (result['mermaid_model'], result['answer_model'])
         if key not in model_stats:
-            model_stats[key] = []
-        model_stats[key].append(result['total_time'])
+            model_stats[key] = {
+                'total_times': [],
+                'mermaid_times': [],
+                'csv_times': [],
+                'answer_times': []
+            }
+
+        model_stats[key]['total_times'].append(result['total_time'])
+
+        # 各プロセスの時間を取得
+        processes = result.get('processes', {})
+        mermaid_time = processes.get('mermaid_generation', {}).get('time', 0)
+        csv_time = processes.get('csv_conversion', {}).get('time', 0)
+        answer_time = processes.get('answer_generation', {}).get('time', 0)
+
+        model_stats[key]['mermaid_times'].append(mermaid_time)
+        model_stats[key]['csv_times'].append(csv_time)
+        model_stats[key]['answer_times'].append(answer_time)
 
     # サマリーデータを挿入
     current_row = 3
-    for (mermaid_model, answer_model), times in sorted(model_stats.items()):
+    for (mermaid_model, answer_model), stats in sorted(model_stats.items()):
+        times = stats['total_times']
+        mermaid_times = stats['mermaid_times']
+        csv_times = stats['csv_times']
+        answer_times = stats['answer_times']
+
         ws_summary.cell(row=current_row, column=1, value=mermaid_model)
         ws_summary.cell(row=current_row, column=2, value=answer_model)
         ws_summary.cell(row=current_row, column=3, value=round(sum(times) / len(times), 2))
         ws_summary.cell(row=current_row, column=4, value=round(min(times), 2))
         ws_summary.cell(row=current_row, column=5, value=round(max(times), 2))
-        ws_summary.cell(row=current_row, column=6, value=len(times))
+        ws_summary.cell(row=current_row, column=6, value=round(sum(mermaid_times) / len(mermaid_times), 2))
+        ws_summary.cell(row=current_row, column=7, value=round(sum(csv_times) / len(csv_times), 2))
+        ws_summary.cell(row=current_row, column=8, value=round(sum(answer_times) / len(answer_times), 2))
+        ws_summary.cell(row=current_row, column=9, value=len(times))
         current_row += 1
 
     # 列幅を調整
-    for col in range(1, 7):
+    for col in range(1, 10):
         ws_summary.column_dimensions[get_column_letter(col)].width = 20
 
     print(f"  ✅ サマリーシートを作成しました\n")

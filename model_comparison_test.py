@@ -6,6 +6,7 @@ import os
 import json
 import time
 import csv
+import re
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -112,12 +113,19 @@ def openai_chat_timed(model: str, messages: List[Dict], log_label: str = None, *
         tokens = {
             "prompt": usage.prompt_tokens if usage else 0,
             "completion": usage.completion_tokens if usage else 0,
-            "total": usage.total_tokens if usage else 0
+            "total": usage.total_tokens if usage else 0,
+            "cached": 0
         }
+
+        # Prompt Caching情報を取得
+        if hasattr(usage, 'prompt_tokens_details') and hasattr(usage.prompt_tokens_details, 'cached_tokens'):
+            tokens['cached'] = usage.prompt_tokens_details.cached_tokens
 
         content = response.choices[0].message.content if response.choices else ""
 
         log_msg = f"✓ {log_label or 'API呼び出し'}: model={model}, time={elapsed:.2f}s, tokens={tokens['prompt']}→{tokens['completion']}"
+        if tokens['cached'] > 0:
+            log_msg += f" (cached: {tokens['cached']})"
         logger.info(log_msg)
 
         return {
@@ -216,23 +224,25 @@ JSON形式で回答してください:
 def process_center_person(story_text: str, question: str, character_summary: str) -> Dict[str, Any]:
     """
     中心人物特定プロセス（固定: GPT-5.1）
+    zikken_11month_v7.pyと同じプロンプト
     """
-    prompt = f"""以下の文章は、ユーザーが今まで読んだ小説本文です。
------ 本文ここから -----
-{story_text}
------ 本文ここまで -----
-
-以下は登場人物の要約です:
+    prompt = f"""登場人物情報:
 {character_summary}
 
-ユーザーの質問: {question}
+---
 
-この質問に答える上で中心となる人物を特定してください。
-JSON形式で回答:
-{{"center_person": "人物名", "reason": "理由"}}"""
+質問: {question}
+
+この質問の中心となる登場人物の名前を1つだけ答えてください。
+
+要件:
+- 登場人物情報に記載されている正確な人物名で回答
+- 人物名のみを1行で出力（説明不要）
+
+回答:"""
 
     messages = [
-        {"role": "system", "content": "あなたは登場人物を分析するアシスタントです。"},
+        {"role": "system", "content": "質問の中心人物を特定します。"},
         {"role": "user", "content": prompt}
     ]
 
@@ -248,35 +258,66 @@ def process_mermaid_generation(model: str, story_text: str, question: str,
                                 center_person: str, character_summary: str) -> Dict[str, Any]:
     """
     Mermaid図生成プロセス（ラフ生成）
+    zikken_11month_v7.pyと同じプロンプト
     """
-    prompt = f"""以下の文章は、ユーザーが今まで読んだ小説本文です。
------ 本文ここから -----
+    prompt = f"""タスク: 以下の本文を読み、質問で指定された人物を中心とした登場人物の関係図をMermaid形式で生成してください。
+
+【重要な注意事項】
+❌ 間違った例（絶対にやってはいけない）:
+```mermaid
+graph LR
+    不明((不明))
+    不明 --- ミナ
+    不明 -->|質問対象| ミナ
+```
+このように「不明」「質問者」などの抽象的なノードを作成してはいけません。
+
+✅ 正しい例:
+```mermaid
+graph LR
+    ミナ[ミナ<br/>神官]
+    アリオス[アリオス<br/>勇者]
+    レイン[レイン<br/>ビーストテイマー]
+
+    ミナ <--> アリオス[仲間]
+    ミナ <--> レイン[元仲間]
+```
+このように実在する登場人物のみをノードとして使用してください。
+
+本文:
 {story_text}
------ 本文ここまで -----
 
-以下は登場人物の要約です:
-{character_summary}
-
-中心人物: {center_person}
 質問: {question}
 
-この質問に答えるための人物関係図をMermaid記法で生成してください。
-中心人物を中心に、関連する人物との関係を図示してください。
+要件:
+- graph LR または graph TD で開始
+- **{center_person}を中心**に、直接関わる主要人物のみを含める
+- 登場人物は物語上重要な人物に限定する（5-10人程度）
+- 関係性の表現：
+  * 双方向の関係: <--> を使用（例: 友人、仲間、恋人など）
+  * 一方向の関係: --> を使用（例: 上司→部下、師匠→弟子など）
+  * 点線矢印 -.-> は補助的な関係に使用
+- **重要**: 同じ2人の間の関係は最大2本まで（AからB、BからA）
+- エッジには簡潔な日本語ラベルを付ける（5文字以内推奨）
+- 必要に応じてsubgraphでグループ化（例: 勇者パーティー、魔王軍など）
+- {center_person}に直接関わらない人物間の関係は省略する
 
-フォーマット:
-```mermaid
-graph TD
-  ...
-```"""
+**絶対に守ること:**
+1. 「不明」「質問者」「主体」「客体」などの抽象的なノードは絶対に作成しない
+2. 必ず実在する登場人物のみをノードとして使用する
+3. {center_person}自身をノードとして必ず含める
+4. 質問の意図は「{center_person}についての関係図を作る」であって「不明な人物が{center_person}について質問する図」ではない
+
+出力はMermaidコードのみ（説明不要）"""
 
     messages = [
-        {"role": "system", "content": "あなたはMermaid図を生成するアシスタントです。"},
+        {"role": "system", "content": "Mermaid図を生成する専門家です。"},
         {"role": "user", "content": prompt}
     ]
 
-    # gpt-5-miniはtemperatureをサポートしないため、モデルによって分岐
+    # gpt-5系はtemperatureをサポートしないため、モデルによって分岐
     kwargs = {"log_label": f"Mermaid生成({model})"}
-    if "gpt-5-mini" not in model:
+    if "gpt-5" not in model:
         kwargs["temperature"] = 0.3
 
     return openai_chat_timed(
@@ -286,25 +327,45 @@ graph TD
     )
 
 
-def process_csv_conversion(model: str, mermaid_code: str) -> Dict[str, Any]:
+def process_csv_conversion(model: str, mermaid_code: str, story_text: str, center_person: str) -> Dict[str, Any]:
     """
     CSV変換プロセス
+    zikken_11month_v7.pyと同じプロンプト
     """
-    prompt = f"""以下のMermaidコードをCSV形式に変換してください。
+    prompt = f"""本文（参考）:
+{story_text}
 
+Mermaid図:
 {mermaid_code}
 
-CSV形式:
-from,to,label"""
+出力形式:
+主体,関係タイプ,関係詳細,客体,グループ
+
+説明:
+- 主体: 関係の起点となる人物
+- 関係タイプ: directed（一方向）, bidirectional（双方向）, dotted（点線）
+- 関係詳細: 関係を表す日本語（5文字以内）
+- 客体: 関係の終点となる人物
+- グループ: subgraphに属する場合はグループ名、なければ空欄
+
+重要な制約:
+- **同じ2人の間の関係は最大2本まで**（A→B と B→A のみ）
+- 同じ方向の重複する関係は1つにまとめる
+- 本文に存在しない人物関係は除外
+- {center_person}に直接関わる人物を優先
+- {center_person}に直接関わらない人物間の関係は省略
+- ヘッダーは不要
+
+以上のMermaid図から「{center_person}」を中心とした主要人物の関係のみを抽出してCSV形式で出力してください。"""
 
     messages = [
-        {"role": "system", "content": "あなたはMermaidコードをCSVに変換するアシスタントです。"},
+        {"role": "system", "content": "Mermaid図と本文を照合して正確な関係を抽出します。"},
         {"role": "user", "content": prompt}
     ]
 
-    # gpt-5-miniはtemperatureをサポートしないため、モデルによって分岐
+    # gpt-5系はtemperatureをサポートしないため、モデルによって分岐
     kwargs = {"log_label": f"CSV変換({model})"}
-    if "gpt-5-mini" not in model:
+    if "gpt-5" not in model:
         kwargs["temperature"] = 0.0
 
     return openai_chat_timed(
@@ -312,6 +373,137 @@ from,to,label"""
         messages=messages,
         **kwargs
     )
+
+
+def build_mermaid_from_csv(csv_text: str, main_focus: str = None) -> str:
+    """
+    CSVデータから正確なMermaid図を構築
+    重複する関係を統合し、同じペア間の関係を最大2本（双方向）に制限
+
+    改善点:
+    - CSVヘッダー行をスキップ
+    - メタノード（不明、主体、客体など）をフィルタリング
+    - 中心人物の名前マッチングを改善（部分一致）
+    """
+    # フィルタリング対象のメタノード
+    INVALID_NODES = {
+        '不明', '主体', '客体', 'グループ', '関係タイプ', '関係詳細',
+        '?', '？', 'None', 'none', 'null', 'NULL', ''
+    }
+
+    # ノードとエッジの収集
+    nodes = set()
+    edges = []
+    groups = {}  # グループ名 -> ノードリスト
+    edge_map = {}  # (src, dst)のペアをキーにして重複チェック
+
+    reader = csv.reader(csv_text.splitlines())
+    for i, row in enumerate(reader):
+        # ヘッダー行をスキップ
+        if i == 0 and row[0].strip() in ['主体', '関係', 'source', 'Source']:
+            continue
+
+        if len(row) < 4:
+            continue
+
+        src = row[0].strip()
+        rel_type = row[1].strip() if len(row) > 1 else "directed"
+        rel_label = row[2].strip() if len(row) > 2 else "関係"
+        dst = row[3].strip() if len(row) > 3 else ""
+        group = row[4].strip() if len(row) > 4 else ""
+
+        # メタノードをフィルタリング
+        if src in INVALID_NODES or dst in INVALID_NODES:
+            continue
+
+        if not src or not dst:
+            continue
+
+        # 同じペア（順序あり）の重複チェック
+        edge_key = (src, dst)
+        if edge_key in edge_map:
+            # 既に同じ方向の関係がある場合はスキップ
+            continue
+
+        nodes.add(src)
+        nodes.add(dst)
+
+        # グループの記録
+        if group:
+            if group not in groups:
+                groups[group] = set()
+            groups[group].add(src)
+            groups[group].add(dst)
+
+        # エッジの記録
+        edge_symbol = "-->"  # デフォルト
+        if rel_type.lower() in ["bidirectional", "双方向"]:
+            edge_symbol = "<-->"
+        elif rel_type.lower() in ["dotted", "点線"]:
+            edge_symbol = "-.->"
+
+        edges.append({
+            "src": src,
+            "dst": dst,
+            "symbol": edge_symbol,
+            "label": rel_label[:5]  # 5文字制限
+        })
+        edge_map[edge_key] = True
+
+    # Mermaid図の構築
+    lines = ["graph LR"]
+
+    # ノードIDの生成（安全な識別子）
+    def safe_id(name: str) -> str:
+        return f'id_{abs(hash(name)) % 10000}'
+
+    node_ids = {name: safe_id(name) for name in nodes}
+
+    # ノード定義
+    for name in sorted(nodes):
+        node_id = node_ids[name]
+        lines.append(f'    {node_id}["{name}"]')
+
+    # サブグラフの定義
+    if groups:
+        for group_name, group_nodes in groups.items():
+            safe_group_name = re.sub(r'[^0-9A-Za-z_\u3040-\u30FF\u4E00-\u9FFF\s]', '', group_name)
+            lines.append(f'\n    subgraph {safe_group_name}')
+            for node in group_nodes:
+                if node in node_ids:
+                    lines.append(f'        {node_ids[node]}')
+            lines.append('    end')
+
+    # エッジの定義
+    lines.append('')  # 空行
+    for edge in edges:
+        if edge["src"] in node_ids and edge["dst"] in node_ids:
+            src_id = node_ids[edge["src"]]
+            dst_id = node_ids[edge["dst"]]
+
+            if edge["label"]:
+                if edge["symbol"] == "<-->":
+                    lines.append(f'    {src_id} <-->|{edge["label"]}| {dst_id}')
+                elif edge["symbol"] == "-.->":
+                    lines.append(f'    {src_id} -.->|{edge["label"]}| {dst_id}')
+                else:
+                    lines.append(f'    {src_id} -->|{edge["label"]}| {dst_id}')
+            else:
+                lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
+
+    # 中心人物の強調（部分一致で検索）
+    if main_focus:
+        # main_focusが完全一致で存在するか確認
+        if main_focus in node_ids:
+            lines.append(f'\n    style {node_ids[main_focus]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+        else:
+            # 部分一致で検索（例: "レイン・シュラウド" が "レイン" にマッチ）
+            for node_name in node_ids:
+                if main_focus in node_name or node_name in main_focus:
+                    lines.append(f'\n    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    break  # 最初にマッチしたノードのみをハイライト
+
+    return '\n'.join(lines)
 
 
 def process_answer_generation(model: str, story_text: str, question: str) -> Dict[str, Any]:
@@ -334,9 +526,9 @@ def process_answer_generation(model: str, story_text: str, question: str) -> Dic
         {"role": "user", "content": prompt}
     ]
 
-    # gpt-5-miniはtemperatureをサポートしないため、モデルによって分岐
+    # gpt-5系はtemperatureをサポートしないため、モデルによって分岐
     kwargs = {"log_label": f"回答生成({model})"}
-    if "gpt-5-mini" not in model:
+    if "gpt-5" not in model:
         kwargs["temperature"] = 0.7
 
     return openai_chat_timed(
@@ -410,18 +602,55 @@ def run_single_test(question_data: Dict, mermaid_model: str, answer_model: str,
         "time": mermaid_result["time"],
         "tokens": mermaid_result["tokens"]
     }
-    results["outputs"]["mermaid_code"] = mermaid_result["content"]
+    results["outputs"]["mermaid_rough"] = mermaid_result["content"]  # ラフMermaidを保存
 
     # 4. CSV変換
-    csv_result = process_csv_conversion(mermaid_model, mermaid_result["content"])
+    csv_result = process_csv_conversion(mermaid_model, mermaid_result["content"], story_text, center_person)
     results["processes"]["csv_conversion"] = {
         "model": mermaid_model,
         "time": csv_result["time"],
         "tokens": csv_result["tokens"]
     }
-    results["outputs"]["csv_data"] = csv_result["content"]
+    results["outputs"]["csv"] = csv_result["content"]
 
-    # 5. 回答生成
+    # 5. CSVからMermaid再構築（ルールベース）
+    try:
+        rebuilt_mermaid = build_mermaid_from_csv(csv_result["content"], center_person)
+        results["outputs"]["mermaid_code"] = rebuilt_mermaid  # 最終Mermaidを保存
+        logger.debug(f"Mermaid再構築完了: {len(rebuilt_mermaid)} 文字")
+    except Exception as e:
+        logger.error(f"Mermaid再構築エラー: {e}")
+        # エラー時はラフMermaidをそのまま使用
+        results["outputs"]["mermaid_code"] = mermaid_result["content"]
+
+    # Mermaid・CSVファイルを保存（ラフ、CSV、整形後の3つ）
+    try:
+        mermaid_dir = Path(__file__).parent / "mermaid_outputs"
+        mermaid_dir.mkdir(exist_ok=True)
+
+        # ファイル名の生成
+        base_filename = f"{question_id}_{mermaid_model}_{answer_model}"
+
+        # ラフMermaid
+        rough_file = mermaid_dir / f"{base_filename}_rough.mmd"
+        with open(rough_file, 'w', encoding='utf-8') as f:
+            f.write(results["outputs"]["mermaid_rough"])
+
+        # CSV
+        csv_file = mermaid_dir / f"{base_filename}.csv"
+        with open(csv_file, 'w', encoding='utf-8') as f:
+            f.write(results["outputs"]["csv"])
+
+        # 整形後Mermaid
+        final_file = mermaid_dir / f"{base_filename}.mmd"
+        with open(final_file, 'w', encoding='utf-8') as f:
+            f.write(results["outputs"]["mermaid_code"])
+
+        logger.debug(f"ファイル保存: {base_filename} (rough.mmd, .csv, .mmd)")
+    except Exception as e:
+        logger.warning(f"ファイル保存エラー: {e}")
+
+    # 6. 回答生成
     answer_result = process_answer_generation(answer_model, story_text, question)
     results["processes"]["answer_generation"] = {
         "model": answer_model,
@@ -531,7 +760,9 @@ def warmup_prompt_cache(story_text: str, character_summary: str):
         logger.info("=" * 80 + "\n")
 
     except Exception as e:
-        logger.warning(f"⚠️ キャッシュウォームアップ中にエラーが発生しましたが、テストを続行します: {e}")
+        logger.error(f"❌ キャッシュウォームアップ中にエラーが発生しました: {e}")
+        logger.error("テストを中止します")
+        raise
 
 
 def run_all_tests():
@@ -623,7 +854,8 @@ def run_all_tests():
                 logger.error(f"❌ テスト失敗: {question_data['id']}, {mermaid_model}, {answer_model}: {str(e)}")
                 import traceback
                 logger.error(traceback.format_exc())
-                continue
+                logger.error("エラーが発生したため、テストを中止します")
+                raise
 
     # 最終結果のサマリー
     total_elapsed = time.time() - start_time
