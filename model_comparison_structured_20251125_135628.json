@@ -1,0 +1,690 @@
+[
+  {
+    "question_id": "Q1",
+    "question": "ミナって誰だっけ？",
+    "question_type": "character_identification",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "ミナ",
+      "mermaid_code": "graph LR\n    id_8143[\"ミナ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_5238[\"アッガス\"]\n    id_9956[\"レイン\"]\n\n    subgraph 勇者パーティー\n        id_3871\n        id_5238\n        id_7582\n        id_8143\n    end\n\n    id_8143 <-->|仲間| id_7582\n    id_8143 <-->|仲間| id_3871\n    id_8143 <-->|仲間| id_5238\n    id_8143 <-->|元仲間| id_9956\n\n    style id_8143 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "ミナは、勇者アリオスのパーティーの一員で、神官としてどんな傷も癒やし、死者すら蘇生することができる能力を持っています。彼女はレインの元仲間であり、勇者パーティーにおいて重要な役割を果たしている人物です。",
+      "relationships_count": 4
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.8751838207244873,
+        "tokens": {
+          "prompt": 20468,
+          "completion": 11,
+          "total": 20479,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 8.639125108718872,
+        "tokens": {
+          "prompt": 77167,
+          "completion": 128,
+          "total": 77295,
+          "cached": 0
+        }
+      },
+      "answer_generation": {
+        "time": 15.728454828262329,
+        "tokens": {
+          "prompt": 76760,
+          "completion": 80,
+          "total": 76840,
+          "cached": 0
+        }
+      }
+    },
+    "total_time": 26.24276375770569
+  },
+  {
+    "question_id": "Q1",
+    "question": "ミナって誰だっけ？",
+    "question_type": "character_identification",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "ミナ",
+      "mermaid_code": "graph LR\n    id_8143[\"ミナ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_5238[\"アッガス\"]\n    id_9956[\"レイン\"]\n\n    subgraph 勇者パーティー\n        id_3871\n        id_5238\n        id_7582\n        id_8143\n    end\n\n    id_8143 <-->|仲間| id_7582\n    id_8143 <-->|仲間| id_3871\n    id_8143 <-->|仲間| id_5238\n    id_8143 <-->|元仲間| id_9956\n\n    style id_8143 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "ミナは、勇者アリオスのパーティーに所属する神官です。彼女は仲間の傷を癒やしたり、死者を蘇生させる能力を持っています。ミナは仲間たちに対して優しさを持ちながらも、厳しい意見を言うこともあり、特にレインについては彼のことを元仲間として扱っています。",
+      "relationships_count": 4
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.564751148223877,
+        "tokens": {
+          "prompt": 20468,
+          "completion": 11,
+          "total": 20479,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 3.2382760047912598,
+        "tokens": {
+          "prompt": 77167,
+          "completion": 128,
+          "total": 77295,
+          "cached": 76800
+        }
+      },
+      "answer_generation": {
+        "time": 4.876155853271484,
+        "tokens": {
+          "prompt": 76760,
+          "completion": 98,
+          "total": 76858,
+          "cached": 0
+        }
+      }
+    },
+    "total_time": 9.679183006286621
+  },
+  {
+    "question_id": "Q1",
+    "question": "ミナって誰だっけ？",
+    "question_type": "character_identification",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "ミナ",
+      "mermaid_code": "graph LR\n    id_8143[\"ミナ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_9956[\"レイン\"]\n    id_1405[\"タニア\"]\n    id_8808[\"カナデ\"]\n\n    subgraph 勇者パーティー\n        id_3871\n        id_7582\n        id_8143\n    end\n\n    id_8143 <-->|仲間| id_7582\n    id_8143 <-->|仲間| id_3871\n    id_8143 <-->|元仲間| id_9956\n    id_8143 -.->.|知り合い| id_1405\n    id_8143 -.->.|知り合い| id_8808\n\n    style id_8143 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "ミナは、勇者アリオスのパーティーの一員であり、神官の役割を担っています。彼女はどんな傷も癒やし、死者すら蘇生することができる神官としての能力を持っています。勇者アリオスのパーティーには、ミナの他に戦士のアッガスと魔法使いのリーンがいます。ミナは、以前はレインと同じパーティーに所属していましたが、現在は元仲間の関係となっています。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.3699920177459717,
+        "tokens": {
+          "prompt": 20468,
+          "completion": 11,
+          "total": 20479,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 7.371393918991089,
+        "tokens": {
+          "prompt": 77167,
+          "completion": 153,
+          "total": 77320,
+          "cached": 0
+        }
+      },
+      "answer_generation": {
+        "time": 3.4856741428375244,
+        "tokens": {
+          "prompt": 76784,
+          "completion": 128,
+          "total": 76912,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 12.227060079574585
+  },
+  {
+    "question_id": "Q1",
+    "question": "ミナって誰だっけ？",
+    "question_type": "character_identification",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "ミナ",
+      "mermaid_code": "graph LR\n    id_8143[\"ミナ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_9956[\"レイン\"]\n    id_1405[\"タニア\"]\n    id_8808[\"カナデ\"]\n\n    subgraph 勇者パーティー\n        id_3871\n        id_7582\n        id_8143\n    end\n\n    id_8143 <-->|仲間| id_7582\n    id_8143 <-->|仲間| id_3871\n    id_8143 <-->|元仲間| id_9956\n    id_8143 -.->.|新仲間| id_1405\n    id_8143 -.->.|新仲間| id_8808\n\n    style id_8143 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "ミナは、勇者アリオスのパーティーに所属する神官です。彼女は仲間の傷を癒やしたり、死者を蘇生する能力を持っています。勇者一行の中では、主にサポート役として活躍しているキャラクターです。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 3.8008711338043213,
+        "tokens": {
+          "prompt": 20468,
+          "completion": 5,
+          "total": 20473,
+          "cached": 0
+        }
+      },
+      "mermaid_generation": {
+        "time": 5.10568380355835,
+        "tokens": {
+          "prompt": 77167,
+          "completion": 151,
+          "total": 77318,
+          "cached": 77056
+        }
+      },
+      "answer_generation": {
+        "time": 2.7602219581604004,
+        "tokens": {
+          "prompt": 76782,
+          "completion": 72,
+          "total": 76854,
+          "cached": 75904
+        }
+      }
+    },
+    "total_time": 11.666776895523071
+  },
+  {
+    "question_id": "Q2",
+    "question": "タニアとカナデの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_9956[\"レイン\"]\n    id_8808[\"カナデ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n    id_5238[\"アッガス\"]\n\n    subgraph 冒険者\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_1405\n        id_5238\n        id_8143\n        id_3871\n        id_7582\n    end\n\n    id_1405 <-->|仲間| id_9956\n    id_1405 <-->|仲間| id_8808\n    id_1405 -.->.|敵対| id_7582\n    id_1405 -.->.|敵対| id_3871\n    id_1405 -.->.|敵対| id_8143\n    id_1405 -.->.|敵対| id_5238\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとカナデは、レインの仲間として共に冒険をしている関係です。二人は最強種であり、カナデは猫霊族、タニアは竜族のレッドドラゴンです。二人はレインのことを信頼しており、彼のために行動することが多いです。出会いの時は、タニアがカナデを挑発するような発言をしていましたが、お互いに仲間としての絆を深めていくうちに、良い関係を築いているようです。\n\n二人は性格が対照的で、カナデは天真爛漫で明るく、素直な性格をしており、タニアは少しひねくれているところがありますが、根は優しい性格をしています。そんな二人は、お互いに補い合いながら、レインを支える仲間として共に冒険をしています。",
+      "relationships_count": 6
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.4364819526672363,
+        "tokens": {
+          "prompt": 20475,
+          "completion": 12,
+          "total": 20487,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 3.2667458057403564,
+        "tokens": {
+          "prompt": 77178,
+          "completion": 193,
+          "total": 77371,
+          "cached": 75776
+        }
+      },
+      "answer_generation": {
+        "time": 5.327955007553101,
+        "tokens": {
+          "prompt": 76855,
+          "completion": 232,
+          "total": 77087,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 10.031182765960693
+  },
+  {
+    "question_id": "Q2",
+    "question": "タニアとカナデの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_9956[\"レイン\"]\n    id_8808[\"カナデ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n    id_5238[\"アッガス\"]\n\n    subgraph 冒険者\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_1405\n        id_5238\n        id_8143\n        id_3871\n        id_7582\n    end\n\n    id_1405 <-->|仲間| id_9956\n    id_1405 <-->|仲間| id_8808\n    id_1405 -.->.|敵対| id_7582\n    id_1405 -.->.|敵対| id_3871\n    id_1405 -.->.|敵対| id_8143\n    id_1405 -.->.|敵対| id_5238\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとカナデの関係性は、最初は互いに異なる種族でありながら、共通の目的を持って行動する仲間というものです。タニアはレッドドラゴンという最強種の一角であり、カナデは猫霊族という珍しい種族です。\n\n二人は、レインというビーストテイマーを共有する仲間としての絆を深めており、互いに信頼し合っています。カナデはタニアの力を認め、タニアもカナデの強さや性格を好ましく思っています。タニアはカナデに対して優しさを見せる一方、カナデはタニアを仲間として受け入れ、共に戦うことを楽しんでいます。\n\nまた、二人はレインを通じて互いの絆を強めており、レインを守るために協力し合う姿勢を見せています。タニアがカナデを受け入れることで、二人はより良い関係を築いていくことができるようになっています。\n\n全体として、タニアとカナデはお互いを理解し、支え合いながら冒険を共にする仲間であり、今後の成長や冒険において重要な役割を果たす関係性であると言えるでしょう。",
+      "relationships_count": 6
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.7430601119995117,
+        "tokens": {
+          "prompt": 20475,
+          "completion": 12,
+          "total": 20487,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 3.2776970863342285,
+        "tokens": {
+          "prompt": 77178,
+          "completion": 193,
+          "total": 77371,
+          "cached": 76672
+        }
+      },
+      "answer_generation": {
+        "time": 11.902314901351929,
+        "tokens": {
+          "prompt": 76855,
+          "completion": 337,
+          "total": 77192,
+          "cached": 0
+        }
+      }
+    },
+    "total_time": 16.92307209968567
+  },
+  {
+    "question_id": "Q2",
+    "question": "タニアとカナデの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_8808[\"カナデ\"]\n    id_9956[\"レイン\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n\n    subgraph ビーストテイマー\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_8143\n        id_1405\n        id_7582\n        id_3871\n    end\n\n    id_1405 <-->|仲間| id_8808\n    id_1405 <-->|仲間| id_9956\n    id_1405 -.->.|敵| id_7582\n    id_1405 -.->.|敵| id_3871\n    id_1405 -.->.|敵| id_8143\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとカナデは、レインの仲間として共に行動する最強種の存在です。二人はレインを中心にしたパーティーの一員として、協力して様々な冒険に挑んでいます。タニアは竜族であり、カナデは猫霊族と呼ばれる最強種です。\n\n二人は、最初こそ性格の違いから軽い衝突もありましたが、次第にお互いを認め合い、良いコンビとなっていきます。カナデは明るく天真爛漫な性格で、タニアは少しひねくれたところがあるものの、本質的には優しい性格です。二人とも、レインを慕っており、彼を大切な仲間として信頼しています。\n\nまた、レインをバカにする者に対しては、二人とも強い怒りを見せることから、彼に対する思いは共通しているようです。彼女たちの関係性は、互いに補完し合いながら、レインを中心に団結しているというものです。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.542922019958496,
+        "tokens": {
+          "prompt": 20475,
+          "completion": 12,
+          "total": 20487,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 9.385064840316772,
+        "tokens": {
+          "prompt": 77178,
+          "completion": 164,
+          "total": 77342,
+          "cached": 0
+        }
+      },
+      "answer_generation": {
+        "time": 5.940832138061523,
+        "tokens": {
+          "prompt": 76821,
+          "completion": 276,
+          "total": 77097,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 16.868818998336792
+  },
+  {
+    "question_id": "Q2",
+    "question": "タニアとカナデの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_8808[\"カナデ\"]\n    id_9956[\"レイン\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n\n    subgraph ビーストテイマー\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_8143\n        id_1405\n        id_7582\n        id_3871\n    end\n\n    id_1405 <-->|仲間| id_8808\n    id_1405 <-->|主従| id_9956\n    id_1405 -.->.|敵| id_7582\n    id_1405 -.->.|敵| id_3871\n    id_1405 -.->.|敵| id_8143\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとカナデの関係性は、最初は対照的な立場にあるキャラクター同士ですが、互いに信頼し合い、仲間としての絆を深めていく様子が描かれています。\n\n1. **性格の違い**:\n   - **タニア**: レッドドラゴンという最強種であり、非常に自信に満ちている性格。力強さと傲慢さを持ち合わせており、時には気が強い一面を見せることがあります。\n   - **カナデ**: 猫霊族で、明るく元気な性格。無邪気でかわいらしく、他人を気遣う優しさを持っています。タニアに比べて、柔らかい印象を与えます。\n\n2. **お互いの認識**:\n   - タニアはカナデを仲間として認め、彼女の力を評価します。一方で、カナデはタニアの力強さに感心し、彼女への信頼感を抱いています。\n   - それぞれが互いの特性を尊重し、協力することで、強力なコンビを形成しています。\n\n3. **友情と絆**:\n   - 二人はレインを通じて出会い、彼との関係を基盤にして、共に冒険をする仲間となります。互いに助け合い、時には意見をぶつけ合いながらも、信頼し合う関係を築いています。\n   - 特に、タニアがカナデのためにレインに優しさを示したり、カナデがタニアを心配する場面があり、互いの成長と絆を強調しています。\n\n4. **共通の目標**:\n   - 彼女たちは共にレインを支え、彼の成長を見守る役割を果たしているため、目的意識も一致しています。これにより、より強い絆が生まれています。\n\nこのように、タニアとカナデは異なる性格ながらも、互いに影響を与え合い、成長していく関係性が描かれています。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.375175952911377,
+        "tokens": {
+          "prompt": 20475,
+          "completion": 12,
+          "total": 20487,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 4.350631952285767,
+        "tokens": {
+          "prompt": 77178,
+          "completion": 165,
+          "total": 77343,
+          "cached": 77056
+        }
+      },
+      "answer_generation": {
+        "time": 13.831298112869263,
+        "tokens": {
+          "prompt": 76822,
+          "completion": 537,
+          "total": 77359,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 19.557106018066406
+  },
+  {
+    "question_id": "Q3",
+    "question": "レインはアリオスのことがなんで嫌いなの？",
+    "question_type": "character_motivation",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "レイン・シュラウド",
+      "mermaid_code": "graph LR\n    id_7964[\"レイン・シュラウド\"]\n    id_7582[\"アリオス\"]\n    id_8808[\"カナデ\"]\n    id_1405[\"タニア\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n    id_5238[\"アッガス\"]\n\n    subgraph 勇者パーティー\n        id_7964\n        id_5238\n        id_8143\n        id_3871\n        id_7582\n    end\n    subgraph 冒険者\n        id_8808\n        id_1405\n        id_7964\n    end\n\n    id_7964 -.->.|元仲間| id_7582\n    id_7964 <-->|仲間| id_8808\n    id_7964 <-->|仲間| id_1405\n    id_7582 <-->|仲間| id_3871\n    id_7582 <-->|仲間| id_8143\n    id_7582 <-->|仲間| id_5238\n    id_3871 <-->|仲間| id_8143\n    id_3871 <-->|仲間| id_5238\n    id_8143 <-->|仲間| id_5238\n\n    style id_7964 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "レインがアリオスのことを嫌いなのは、アリオスたちが彼を仲間として尊重せず、必要がなくなると冷酷に追放したからです。レインはアリオスのパーティーに貢献しようと努力していたにもかかわらず、アリオスたちは彼を「役立たず」と見なし、辛辣な言葉を浴びせて追い出しました。その際、彼が心を傷つけられ、仲間だと思っていた人たちに裏切られたという思いが残っているため、アリオスに対して嫌悪感を抱いています。また、アリオスたちが謝罪をした際も、誠意を感じられない態度であったため、レインの不信感はさらに強まりました。",
+      "relationships_count": 9
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.352066993713379,
+        "tokens": {
+          "prompt": 20476,
+          "completion": 16,
+          "total": 20492,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 4.473610162734985,
+        "tokens": {
+          "prompt": 77195,
+          "completion": 305,
+          "total": 77500,
+          "cached": 76672
+        }
+      },
+      "answer_generation": {
+        "time": 5.128767251968384,
+        "tokens": {
+          "prompt": 76904,
+          "completion": 198,
+          "total": 77102,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 10.954444408416748
+  },
+  {
+    "question_id": "Q3",
+    "question": "レインはアリオスのことがなんで嫌いなの？",
+    "question_type": "character_motivation",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "レイン・シュラウド",
+      "mermaid_code": "graph LR\n    id_7964[\"レイン・シュラウド\"]\n    id_7582[\"アリオス\"]\n    id_8808[\"カナデ\"]\n    id_1405[\"タニア\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n    id_5238[\"アッガス\"]\n\n    subgraph 勇者パーティー\n        id_7964\n        id_5238\n        id_8143\n        id_3871\n        id_7582\n    end\n    subgraph 新パーティー\n        id_8808\n        id_1405\n        id_7964\n    end\n\n    id_7964 <-->|元仲間| id_7582\n    id_7964 <-->|仲間| id_8808\n    id_7964 <-->|仲間| id_1405\n    id_7582 <-->|仲間| id_3871\n    id_7582 <-->|仲間| id_8143\n    id_7582 <-->|仲間| id_5238\n    id_3871 <-->|仲間| id_8143\n    id_3871 <-->|仲間| id_5238\n    id_8143 <-->|仲間| id_5238\n\n    style id_7964 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "レインがアリオスのことを嫌いな理由は、主に彼の行動や言動に対する失望と裏切り感から来ています。アリオスはレインをパーティーから追放する際に、彼の職業や能力を侮辱し、役立たずとして扱いました。レインは仲間として尽力していたにもかかわらず、アリオスたちからはその努力が認められず、冷たく扱われたことに深い傷を負っています。\n\nまた、アリオスが勇者の立場を利用して、レインに対して上から目線で接することも、彼の嫌悪感を増幅させている要因です。レインは、アリオスたちが自分を利用しようとしていることに気づき、彼らの態度に対して反感を抱くようになりました。最終的には、アリオスに対して「元仲間」としての思い出があるものの、彼が自分を裏切ったという事実が、レインの中で強い嫌悪感として根付いているのです。",
+      "relationships_count": 9
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.084820032119751,
+        "tokens": {
+          "prompt": 20476,
+          "completion": 16,
+          "total": 20492,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 3.962110757827759,
+        "tokens": {
+          "prompt": 77195,
+          "completion": 307,
+          "total": 77502,
+          "cached": 75776
+        }
+      },
+      "answer_generation": {
+        "time": 7.810730934143066,
+        "tokens": {
+          "prompt": 76903,
+          "completion": 272,
+          "total": 77175,
+          "cached": 75904
+        }
+      }
+    },
+    "total_time": 12.857661724090576
+  },
+  {
+    "question_id": "Q3",
+    "question": "レインはアリオスのことがなんで嫌いなの？",
+    "question_type": "character_motivation",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "レイン・シュラウド",
+      "mermaid_code": "graph LR\n    id_7964[\"レイン・シュラウド\"]\n    id_8808[\"カナデ\"]\n    id_1405[\"タニア\"]\n    id_7582[\"アリオス\"]\n    id_8143[\"ミナ\"]\n    id_3871[\"リーン\"]\n\n    id_7964 <-->|仲間| id_8808\n    id_7964 <-->|仲間| id_1405\n    id_7964 -.->.|元仲間| id_7582\n    id_7964 -.->.|元仲間| id_8143\n    id_7964 -.->.|元仲間| id_3871\n    id_7582 -.->.|敵| id_1405\n    id_7582 -.->.|敵| id_8808\n    id_1405 <-->|友達| id_8808\n\n    style id_7964 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "レインがアリオスを嫌いな理由は、アリオスたち勇者一行がレインを不当に扱い、最終的には彼を追放したことにあります。アリオスはレインのことを「役立たず」や「ゴミ」と呼び、彼の貢献を一切評価せず、むしろ邪魔者扱いしていました。レインは仲間だと思っていたアリオスたちから辛辣な言葉を浴びせられ、心を傷つけられました。\n\nさらに、アリオスたちは自らの失敗をレインのせいにし、彼を一方的に追放しました。その後、再びアリオスたちと再会した際も、アリオスはレインを見下すような態度を崩さず、再び利用しようとするだけでした。このような過去の経験から、レインはアリオスに対して深い不信感と嫌悪感を抱いているのです。",
+      "relationships_count": 8
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.636645793914795,
+        "tokens": {
+          "prompt": 20476,
+          "completion": 16,
+          "total": 20492,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 9.114542961120605,
+        "tokens": {
+          "prompt": 77195,
+          "completion": 254,
+          "total": 77449,
+          "cached": 0
+        }
+      },
+      "answer_generation": {
+        "time": 6.553089141845703,
+        "tokens": {
+          "prompt": 76810,
+          "completion": 244,
+          "total": 77054,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 17.304277896881104
+  },
+  {
+    "question_id": "Q3",
+    "question": "レインはアリオスのことがなんで嫌いなの？",
+    "question_type": "character_motivation",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "レイン・シュラウド",
+      "mermaid_code": "graph LR\n    id_7964[\"レイン・シュラウド\"]\n    id_8808[\"カナデ\"]\n    id_1405[\"タニア\"]\n    id_7582[\"アリオス\"]\n    id_8143[\"ミナ\"]\n    id_3871[\"リーン\"]\n    id_5238[\"アッガス\"]\n\n    id_7964 <-->|仲間| id_8808\n    id_7964 <-->|仲間| id_1405\n    id_7964 <-->|元仲間| id_7582\n    id_7964 <-->|元仲間| id_8143\n    id_7964 <-->|元仲間| id_3871\n    id_7964 <-->|元仲間| id_5238\n\n    style id_7964 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "レインはアリオスのことを嫌いな理由は、主にアリオスがレインを追放したことに起因しています。アリオスはレインを荷物扱いし、役立たずとして侮辱しました。レインは仲間だと思っていたアリオスや他の仲間たちからの厳しい言葉や扱いに傷つき、彼らが自分を仲間として認めていなかったことを痛感しました。このような経緯から、レインはアリオスに対して強い反感を抱くようになり、彼との関係を良好なものとは考えられなくなったのです。また、レインが自分の仲間を侮辱する発言や態度を許せないという気持ちも、アリオスに対する嫌悪感を一層強めています。",
+      "relationships_count": 6
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.3323860168457031,
+        "tokens": {
+          "prompt": 20476,
+          "completion": 16,
+          "total": 20492,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 7.9183349609375,
+        "tokens": {
+          "prompt": 77195,
+          "completion": 206,
+          "total": 77401,
+          "cached": 76672
+        }
+      },
+      "answer_generation": {
+        "time": 5.383261203765869,
+        "tokens": {
+          "prompt": 76789,
+          "completion": 210,
+          "total": 76999,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 14.633982181549072
+  },
+  {
+    "question_id": "Q4",
+    "question": "タニアとリーンの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_9956[\"レイン\"]\n    id_8808[\"カナデ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n    id_5238[\"アッガス\"]\n\n    subgraph 冒険者パーティー\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_1405\n        id_5238\n        id_8143\n        id_3871\n        id_7582\n    end\n\n    id_1405 <-->|仲間| id_9956\n    id_1405 <-->|仲間| id_8808\n    id_1405 -.->.|敵対| id_7582\n    id_1405 -.->.|敵対| id_3871\n    id_1405 -.->.|敵対| id_8143\n    id_1405 -.->.|敵対| id_5238\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとリーンの関係性は敵対関係にあります。タニアはレインの仲間であり、リーンは勇者アリオスのパーティーの一員です。リーンはレインに対して辛辣な態度を取っており、タニアはレインの仲間として、そんなリーンの態度に対して敵意を持っています。タニアは自分やレインを侮辱するリーンに対して怒りを感じ、対峙した際にはリーンの魔法を打ち消すなどして圧倒的な力を見せつけています。したがって、タニアとリーンの関係は敵対的であり、互いに対して反感を抱いているといえます。",
+      "relationships_count": 6
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.1852002143859863,
+        "tokens": {
+          "prompt": 20474,
+          "completion": 12,
+          "total": 20486,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 2.5600030422210693,
+        "tokens": {
+          "prompt": 77177,
+          "completion": 199,
+          "total": 77376,
+          "cached": 75776
+        }
+      },
+      "answer_generation": {
+        "time": 4.959057807922363,
+        "tokens": {
+          "prompt": 76857,
+          "completion": 184,
+          "total": 77041,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 8.704261064529419
+  },
+  {
+    "question_id": "Q4",
+    "question": "タニアとリーンの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_9956[\"レイン\"]\n    id_8808[\"カナデ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n\n    subgraph 冒険者\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_8143\n        id_1405\n        id_7582\n        id_3871\n    end\n\n    id_1405 <-->|仲間| id_9956\n    id_1405 <-->|仲間| id_8808\n    id_1405 -.->.|敵対| id_7582\n    id_1405 -.->.|敵対| id_3871\n    id_1405 -.->.|敵対| id_8143\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとリーンの関係性は、明確な敵対関係であると同時に、どちらも強力な魔法使いであるという点で共通しています。タニアは竜族の最強種であり、リーンは千を超える魔法を操る魔法使いです。\n\n物語の中で、タニアはリーンと対峙した際、彼女の魔法を簡単に打ち消す能力を持っていることを示します。これにより、リーンはタニアの力に圧倒され、恐怖を抱くことになります。タニアはリーンの魔法を軽視し、挑発的な態度を取ることで、彼女を困惑させます。\n\nまた、タニアは勇者アリオスの仲間であるリーンとミナに対して不満や侮蔑の感情を抱いており、特にアリオスの扱いには納得できない様子が描かれています。タニアは、彼らがレインを侮辱したことに対して怒りを覚え、そのことからもタニアとリーンの関係は緊張感を伴っています。\n\n総じて、タニアとリーンの関係は、互いに異なる立場と能力を持つ強力な存在でありながら、敵対的な状況にあるという複雑なものです。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 1.478389024734497,
+        "tokens": {
+          "prompt": 20474,
+          "completion": 12,
+          "total": 20486,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 3.9086849689483643,
+        "tokens": {
+          "prompt": 77177,
+          "completion": 161,
+          "total": 77338,
+          "cached": 76672
+        }
+      },
+      "answer_generation": {
+        "time": 9.208981990814209,
+        "tokens": {
+          "prompt": 76821,
+          "completion": 340,
+          "total": 77161,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 14.59605598449707
+  },
+  {
+    "question_id": "Q4",
+    "question": "タニアとリーンの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_9956[\"レイン\"]\n    id_8808[\"カナデ\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n\n    subgraph 冒険者\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_8143\n        id_1405\n        id_7582\n        id_3871\n    end\n\n    id_1405 <-->|仲間| id_9956\n    id_1405 <-->|仲間| id_8808\n    id_1405 -.->.|敵| id_7582\n    id_1405 -.->.|敵| id_3871\n    id_1405 -.->.|敵| id_8143\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとリーンの関係性は、敵対関係にあります。タニアはレインの仲間であり、最強種の一つである竜族です。リーンは勇者パーティーの一員で、アリオスの仲間です。タニアは、レインを侮辱したアリオスたちに対して非常に怒っており、特にリーンとミナに対しては、彼女たちの魔法を容易に打ち消すほどの力を見せつけ、恐怖心を与えています。二人は対立する立場にあり、タニアはリーンを軽蔑するような態度を取っています。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 2.9994020462036133,
+        "tokens": {
+          "prompt": 20474,
+          "completion": 12,
+          "total": 20486,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 3.899930000305176,
+        "tokens": {
+          "prompt": 77177,
+          "completion": 158,
+          "total": 77335,
+          "cached": 76672
+        }
+      },
+      "answer_generation": {
+        "time": 5.904748916625977,
+        "tokens": {
+          "prompt": 76818,
+          "completion": 167,
+          "total": 76985,
+          "cached": 76544
+        }
+      }
+    },
+    "total_time": 12.804080963134766
+  },
+  {
+    "question_id": "Q4",
+    "question": "タニアとリーンの関係性について教えて",
+    "question_type": "relationship",
+    "mermaid_model": "gpt-4o-mini",
+    "answer_model": "gpt-4o-mini",
+    "outputs": {
+      "center_person": "タニア",
+      "mermaid_code": "graph LR\n    id_1405[\"タニア\"]\n    id_8808[\"カナデ\"]\n    id_9956[\"レイン\"]\n    id_7582[\"アリオス\"]\n    id_3871[\"リーン\"]\n    id_8143[\"ミナ\"]\n\n    subgraph ビーストテイマー\n        id_8808\n        id_1405\n        id_9956\n    end\n    subgraph 勇者パーティー\n        id_8143\n        id_1405\n        id_7582\n        id_3871\n    end\n\n    id_1405 <-->|仲間| id_8808\n    id_1405 <-->|主従| id_9956\n    id_1405 -.->.|敵| id_7582\n    id_1405 -.->.|敵| id_3871\n    id_1405 -.->.|敵| id_8143\n\n    style id_1405 fill:#FFD700,stroke:#FF8C00,stroke-width:4px",
+      "answer": "タニアとリーンの関係性は、タニアがリーンを敵視していることが示されています。タニアは、リーンが勇者アリオスの仲間であり、彼女がアリオスに対して強い忠誠を持っていることを理解していますが、同時にリーンがレインを侮辱したことに対して強い怒りを抱いています。タニアは、レインが勇者パーティーから追い出されたことに対して不満を持っており、リーンがその状況を軽視していると感じています。\n\nまた、タニアは自分自身を最強種とし、他者を見下す傾向があるリーンにも不快感を抱いています。リーンは千を超える魔法を使うことができる魔法使いであり、タニアはその力に対して敬意を払いつつも、彼女の態度や言葉遣いに苛立ちを覚えています。\n\n最終的に、タニアはリーンと対峙することになりますが、彼女たちの関係は基本的に緊張したものであり、互いに相手を理解し合おうとする姿勢は見られないため、敵対的な感情が強いと言えるでしょう。",
+      "relationships_count": 5
+    },
+    "processes": {
+      "center_person": {
+        "time": 5.2503931522369385,
+        "tokens": {
+          "prompt": 20474,
+          "completion": 12,
+          "total": 20486,
+          "cached": 20352
+        }
+      },
+      "mermaid_generation": {
+        "time": 5.711350202560425,
+        "tokens": {
+          "prompt": 77177,
+          "completion": 165,
+          "total": 77342,
+          "cached": 76672
+        }
+      },
+      "answer_generation": {
+        "time": 9.505594968795776,
+        "tokens": {
+          "prompt": 76821,
+          "completion": 316,
+          "total": 77137,
+          "cached": 76672
+        }
+      }
+    },
+    "total_time": 20.46733832359314
+  }
+]
