@@ -8,6 +8,8 @@ from functools import wraps
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from typing import List, Literal
+from pydantic import BaseModel
 import streamlit as st
 from dotenv import load_dotenv
 import openai
@@ -605,6 +607,111 @@ def openai_chat(model: str, messages: list[dict], log_label: str = None, max_ret
             raise
 
 # =================================================
+#           Pydantic スキーマ定義
+# =================================================
+
+class Relationship(BaseModel):
+    """登場人物間の関係"""
+    source: str  # 関係の起点となる人物
+    target: str  # 関係の終点となる人物
+    relation_type: Literal["directed", "bidirectional", "dotted"]  # 関係のタイプ
+    label: str  # 関係の詳細（5文字以内推奨）
+    group: str = ""  # subgraphグループ名（オプション）
+
+class CharacterGraph(BaseModel):
+    """登場人物関係図の構造化データ"""
+    center_person: str  # 中心人物
+    relationships: List[Relationship]  # 関係のリスト
+
+# 無効なノード名のセット
+INVALID_NODES = {
+    '不明', '主体', '客体', 'グループ', '関係タイプ', '関係詳細',
+    '?', '？', 'None', 'none', 'null', 'NULL', ''
+}
+
+def build_mermaid_from_structured(graph: CharacterGraph) -> str:
+    """
+    Structured OutputsのCharacterGraphからMermaid図を構築
+
+    Args:
+        graph: CharacterGraphオブジェクト
+
+    Returns:
+        Mermaid図のコード
+    """
+    lines = ["graph LR"]
+
+    # ノードを収集
+    nodes = {}
+    groups = {}
+
+    for rel in graph.relationships:
+        # INVALIDチェック
+        if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
+            continue
+
+        # ノード登録
+        for person in [rel.source, rel.target]:
+            if person not in nodes:
+                node_id = f"id_{abs(hash(person)) % 10000}"
+                nodes[person] = node_id
+
+        # グループ情報
+        if rel.group:
+            if rel.group not in groups:
+                groups[rel.group] = []
+            groups[rel.group].append(rel.source)
+            groups[rel.group].append(rel.target)
+
+    # ノード定義
+    for person, node_id in nodes.items():
+        lines.append(f'    {node_id}["{person}"]')
+
+    # グループ定義
+    if groups:
+        lines.append('')
+        for group_name, members in groups.items():
+            lines.append(f'    subgraph {group_name}')
+            for member in set(members):
+                if member in nodes:
+                    lines.append(f'        {nodes[member]}')
+            lines.append('    end')
+
+    # 関係定義
+    lines.append('')
+    for rel in graph.relationships:
+        if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
+            continue
+
+        if rel.source not in nodes or rel.target not in nodes:
+            continue
+
+        src_id = nodes[rel.source]
+        tgt_id = nodes[rel.target]
+
+        if rel.relation_type == "bidirectional":
+            arrow = "<-->"
+        elif rel.relation_type == "dotted":
+            arrow = "-.->."
+        else:
+            arrow = "-->"
+
+        lines.append(f'    {src_id} {arrow}|{rel.label}| {tgt_id}')
+
+    # 中心人物ハイライト（fuzzy matching）
+    if graph.center_person:
+        if graph.center_person in nodes:
+            lines.append(f'\n    style {nodes[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+        else:
+            # 部分一致で検索
+            for node_name in nodes:
+                if graph.center_person in node_name or node_name in graph.center_person:
+                    lines.append(f'\n    style {nodes[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    break
+
+    return '\n'.join(lines)
+
+# =================================================
 #           Streamlit セッション初期化
 # =================================================
 def init_state(key, default):
@@ -1038,288 +1145,79 @@ elif st.session_state["authentication_status"]:
         logger.info(f"[Q{q_num}] Main focus = {main_focus}")
 
         # ──────────────────────────
-        # Step 2: 中心人物を基にざっくりMermaid図を生成
+        # Step 2: Structured Outputsで直接構造化データを取得
         # ──────────────────────────
         # Prompt Caching最適化: 本文を先頭に配置
-        rough_mermaid_prompt = f"""
-    タスク: 以下の本文を読み、質問で指定された人物を中心とした登場人物の関係図をMermaid形式で生成してください。
+        structured_prompt = f"""
+本文:
+{story_text}
 
-    【重要な注意事項】
-    ❌ 間違った例（絶対にやってはいけない）:
-    ```mermaid
-    graph LR
-        不明((不明))
-        不明 --- ミナ
-        不明 -->|質問対象| ミナ
-    ```
-    このように「不明」「質問者」などの抽象的なノードを作成してはいけません。
+質問: {question}
+中心人物: {main_focus}
 
-    ✅ 正しい例:
-    ```mermaid
-    graph LR
-        ミナ[ミナ<br/>神官]
-        アリオス[アリオス<br/>勇者]
-        レイン[レイン<br/>ビーストテイマー]
+タスク: 本文を読み、{main_focus}を中心とした登場人物の関係図を構造化データで出力してください。
 
-        ミナ <--> アリオス[仲間]
-        ミナ <--> レイン[元仲間]
-    ```
-    このように実在する登場人物のみをノードとして使用してください。
+【重要な注意事項】
+❌ 絶対にやってはいけないこと:
+- 「不明」「質問者」「主体」「客体」などの抽象的な人物名は使用禁止
+- 実在しない人物を含めない
 
-    本文:
-    {story_text}
+✅ 正しい例:
+- center_person: "ミナ"
+- relationships: [
+    {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
+    {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
+  ]
 
-    質問: {question}
+要件:
+1. {main_focus}を必ず含める
+2. 実在する登場人物のみ（具体的な人物名）
+3. 主要な関係のみ（5-10人程度）
+4. 関係タイプ:
+   - directed: 一方向（上司→部下など）
+   - bidirectional: 双方向（友人、仲間など）
+   - dotted: 補助的な関係
+5. labelは簡潔に（5文字以内推奨）
+6. 同じ2人の間の関係は最大2本まで
 
-    要件:
-    - graph LR または graph TD で開始
-    - **{main_focus}を中心**に、直接関わる主要人物のみを含める
-    - 登場人物は物語上重要な人物に限定する（5-10人程度）
-    - 関係性の表現：
-      * 双方向の関係: <--> を使用（例: 友人、仲間、恋人など）
-      * 一方向の関係: --> を使用（例: 上司→部下、師匠→弟子など）
-      * 点線矢印 -.-> は補助的な関係に使用
-    - **重要**: 同じ2人の間の関係は最大2本まで（AからB、BからA）
-    - エッジには簡潔な日本語ラベルを付ける（5文字以内推奨）
-    - 必要に応じてsubgraphでグループ化（例: 勇者パーティー、魔王軍など）
-    - {main_focus}に直接関わらない人物間の関係は省略する
-
-    **絶対に守ること:**
-    1. 「不明」「質問者」「主体」「客体」などの抽象的なノードは絶対に作成しない
-    2. 必ず実在する登場人物のみをノードとして使用する
-    3. {main_focus}自身をノードとして必ず含める
-    4. 質問の意図は「{main_focus}についての関係図を作る」であって「不明な人物が{main_focus}について質問する図」ではない
-
-    出力はMermaidコードのみ（説明不要）
-    """
+**絶対に守ること:**
+- 「不明」「主体」「客体」などの抽象的な名前は絶対に使用しない
+- 必ず実在する登場人物のみを使用する
+- {main_focus}自身を必ず含める
+"""
 
         try:
-            res_rough = openai_chat(
-                "gpt-4.1",  # GPT-4.1を使用（高速化）
+            # Structured Outputs APIを使用
+            response = client.beta.chat.completions.parse(
+                model="gpt-4o",  # Structured OutputsはGPT-4o以降で対応
                 messages=[
-                    {"role": "system", "content": "Mermaid図を生成する専門家です。"},
-                    {"role": "user", "content": rough_mermaid_prompt}
+                    {"role": "system", "content": "登場人物の関係図を構造化データで出力します。"},
+                    {"role": "user", "content": structured_prompt}
                 ],
-                temperature=0.3,
-                log_label="Mermaid図ざっくり生成"
+                response_format=CharacterGraph,
+                temperature=0.3
             )
-            rough_mermaid = res_rough.choices[0].message.content.strip()
-            # コードブロック記号を除去
-            rough_mermaid = rough_mermaid.replace('```mermaid', '').replace('```', '').strip()
-            logger.debug(f"[Q{q_num}] Rough Mermaid = {rough_mermaid[:500]}")
+
+            graph_data = response.choices[0].message.parsed
+            logger.info(f"[Q{q_num}] Structured data: {len(graph_data.relationships)} relationships")
+
+            # Mermaid図を構築
+            final_mermaid = build_mermaid_from_structured(graph_data)
+            logger.debug(f"[Q{q_num}] Final Mermaid = {final_mermaid[:500]}")
+
         except Exception:
-            logger.exception("[Mermaid] Rough generation error")
-            rough_mermaid = f"graph LR\n    {main_focus} --> 誰か"
+            logger.exception("[Mermaid] Structured generation error")
+            # フォールバック: 最小限のMermaid図を生成
+            final_mermaid = f"graph LR\n    {main_focus}"
 
         # ──────────────────────────
-        # Step 3: Mermaid図をCSVに変換（検証のため）
-        # ──────────────────────────
-        # Prompt Caching最適化: 本文を先頭に配置
-        csv_prompt = f"""
-    本文（参考）:
-    {story_text}
-
-    Mermaid図:
-    {rough_mermaid}
-
-    出力形式:
-    主体,関係タイプ,関係詳細,客体,グループ
-
-    説明:
-    - 主体: 関係の起点となる人物
-    - 関係タイプ: directed（一方向）, bidirectional（双方向）, dotted（点線）
-    - 関係詳細: 関係を表す日本語（5文字以内）
-    - 客体: 関係の終点となる人物
-    - グループ: subgraphに属する場合はグループ名、なければ空欄
-
-    重要な制約:
-    - **同じ2人の間の関係は最大2本まで**（A→B と B→A のみ）
-    - 同じ方向の重複する関係は1つにまとめる
-    - 本文に存在しない人物関係は除外
-    - {main_focus}に直接関わる人物を優先
-    - {main_focus}に直接関わらない人物間の関係は省略
-    - ヘッダーは不要
-
-    以上のMermaid図から「{main_focus}」を中心とした主要人物の関係のみを抽出してCSV形式で出力してください。
-    """
-
-        try:
-            res_csv = openai_chat(
-                "gpt-4.1",  # GPT-4.1を使用（高速化）
-                messages=[
-                    {"role": "system", "content": "Mermaid図と本文を照合して正確な関係を抽出します。"},
-                    {"role": "user", "content": csv_prompt}
-                ],
-                temperature=0,
-                log_label="MermaidをCSVに変換"
-            )
-            csv_text = res_csv.choices[0].message.content.strip()
-            logger.debug(f"[Q{q_num}] Validated CSV = {csv_text[:400]}")
-        except Exception:
-            logger.exception("[Mermaid] CSV conversion error")
-            csv_text = f"{main_focus},directed,関係,誰か,"
-
-        # ──────────────────────────
-        # Step 4: CSVからルールベースでMermaid図を再構築
-        # ──────────────────────────
-        def build_mermaid_from_csv(csv_text: str, main_focus: str = None) -> str:
-            """
-            CSVデータから正確なMermaid図を構築
-            重複する関係を統合し、同じペア間の関係を最大2本（双方向）に制限
-
-            改善点:
-            - CSVヘッダー行をスキップ
-            - メタノード（不明、主体、客体など）をフィルタリング
-            - 中心人物の名前マッチングを改善（部分一致）
-            """
-            # フィルタリング対象のメタノード
-            INVALID_NODES = {
-                '不明', '主体', '客体', 'グループ', '関係タイプ', '関係詳細',
-                '?', '？', 'None', 'none', 'null', 'NULL', ''
-            }
-
-            # ノードとエッジの収集
-            nodes = set()
-            edges = []
-            groups = {}  # グループ名 -> ノードリスト
-            edge_map = {}  # (src, dst)のペアをキーにして重複チェック
-
-            reader = csv.reader(csv_text.splitlines())
-            for i, row in enumerate(reader):
-                # ヘッダー行をスキップ
-                if i == 0 and row[0].strip() in ['主体', '関係', 'source', 'Source']:
-                    continue
-
-                if len(row) < 4:
-                    continue
-
-                src = row[0].strip()
-                rel_type = row[1].strip() if len(row) > 1 else "directed"
-                rel_label = row[2].strip() if len(row) > 2 else "関係"
-                dst = row[3].strip() if len(row) > 3 else ""
-                group = row[4].strip() if len(row) > 4 else ""
-
-                # メタノードをフィルタリング
-                if src in INVALID_NODES or dst in INVALID_NODES:
-                    continue
-
-                if not src or not dst:
-                    continue
-
-                # 同じペア（順序あり）の重複チェック
-                edge_key = (src, dst)
-                if edge_key in edge_map:
-                    # 既に同じ方向の関係がある場合はスキップ
-                    continue
-
-                nodes.add(src)
-                nodes.add(dst)
-
-                # グループの記録
-                if group:
-                    if group not in groups:
-                        groups[group] = set()
-                    groups[group].add(src)
-                    groups[group].add(dst)
-
-                # エッジの記録
-                edge_symbol = "-->"  # デフォルト
-                if rel_type.lower() in ["bidirectional", "双方向"]:
-                    edge_symbol = "<-->"
-                elif rel_type.lower() in ["dotted", "点線"]:
-                    edge_symbol = "-.->"
-
-                edges.append({
-                    "src": src,
-                    "dst": dst,
-                    "symbol": edge_symbol,
-                    "label": rel_label[:5]  # 5文字制限に変更
-                })
-                edge_map[edge_key] = True
-        
-            # Mermaid図の構築
-            lines = ["graph LR"]
-        
-            # ノードIDの生成（安全な識別子）
-            def safe_id(name: str) -> str:
-                # 日本語をそのまま使える場合
-                return f'id_{abs(hash(name)) % 10000}'
-        
-            node_ids = {name: safe_id(name) for name in nodes}
-        
-            # ノード定義
-            for name in sorted(nodes):
-                node_id = node_ids[name]
-                lines.append(f'    {node_id}["{name}"]')
-        
-            # サブグラフの定義
-            if groups:
-                for group_name, group_nodes in groups.items():
-                    safe_group_name = re.sub(r'[^0-9A-Za-z_\u3040-\u30FF\u4E00-\u9FFF\s]', '', group_name)
-                    lines.append(f'\n    subgraph {safe_group_name}')
-                    for node in group_nodes:
-                        if node in node_ids:
-                            lines.append(f'        {node_ids[node]}')
-                    lines.append('    end')
-        
-            # エッジの定義
-            lines.append('')  # 空行
-            for edge in edges:
-                if edge["src"] in node_ids and edge["dst"] in node_ids:
-                    src_id = node_ids[edge["src"]]
-                    dst_id = node_ids[edge["dst"]]
-                
-                    if edge["label"]:
-                        if edge["symbol"] == "<-->":
-                            lines.append(f'    {src_id} <-->|{edge["label"]}| {dst_id}')
-                        elif edge["symbol"] == "-.->":
-                            lines.append(f'    {src_id} -.->|{edge["label"]}| {dst_id}')
-                        else:
-                            lines.append(f'    {src_id} -->|{edge["label"]}| {dst_id}')
-                    else:
-                        lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
-        
-            # 中心人物の強調（部分一致で検索）
-            if main_focus:
-                # main_focusが完全一致で存在するか確認
-                if main_focus in node_ids:
-                    lines.append(f'\n    style {node_ids[main_focus]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-                else:
-                    # 部分一致で検索（例: "レイン・シュラウド" が "レイン" にマッチ）
-                    for node_name in node_ids:
-                        if main_focus in node_name or node_name in main_focus:
-                            lines.append(f'\n    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-                            break  # 最初にマッチしたノードのみをハイライト
-        
-            return '\n'.join(lines)
-
-        # ──────────────────────────
-        # Step 5: 最終的なMermaid図を生成
-        # ──────────────────────────
-        final_mermaid = build_mermaid_from_csv(csv_text, main_focus)
-        logger.debug(f"[Q{q_num}] Final Mermaid = {final_mermaid[:500]}")
-
-        # ──────────────────────────
-        # Step 6: Kroki APIでSVG生成
+        # Step 3: Kroki APIでSVG生成
         # ──────────────────────────
         mmd_path = Path(user_dir_path) / f"{user_name}_{user_number}_{q_num}.mmd"
         svg_path = mmd_path.with_suffix(".svg")
 
         # Mermaidファイルを保存
         mmd_path.write_text(final_mermaid, encoding="utf-8")
-
-        # デバッグ用：生成されたMermaidコードも保存
-        debug_path = Path(user_dir_path) / f"debug_mermaid_{q_num}.txt"
-        debug_content = f"""=== ROUGH MERMAID ===
-    {rough_mermaid}
-
-    === CSV DATA ===
-    {csv_text}
-
-    === FINAL MERMAID ===
-    {final_mermaid}
-    """
-        debug_path.write_text(debug_content, encoding="utf-8")
 
         try:
             # Kroki APIを使用してSVG生成
