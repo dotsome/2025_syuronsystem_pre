@@ -131,76 +131,112 @@ INVALID_NODES = {
 def build_mermaid_from_structured(graph: CharacterGraph) -> str:
     """
     構造化データからMermaid図を構築
+
+    従来のCSV処理で行っていた工夫をルールベースで適用:
+    - 重複エッジの排除（同じペア・同じ方向は1つまで）
+    - ラベル文字数制限（5文字以内）
+    - ノードのソート（一貫性）
+    - グループ名のサニタイズ
     """
     lines = ["graph LR"]
 
-    # ノードを収集
-    nodes = {}
+    # ノードとエッジを収集（重複排除付き）
+    nodes = set()
+    edges = []
     groups = {}
+    edge_map = {}  # (src, dst)のペアをキーにして重複チェック
 
     for rel in graph.relationships:
         # INVALIDチェック
         if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
             continue
 
+        if not rel.source or not rel.target:
+            continue
+
+        # 同じペア（順序あり）の重複チェック
+        edge_key = (rel.source, rel.target)
+        if edge_key in edge_map:
+            # 既に同じ方向の関係がある場合はスキップ
+            continue
+
         # ノード登録
-        for person in [rel.source, rel.target]:
-            if person not in nodes:
-                node_id = f"id_{abs(hash(person)) % 10000}"
-                nodes[person] = node_id
+        nodes.add(rel.source)
+        nodes.add(rel.target)
 
         # グループ情報
         if rel.group:
             if rel.group not in groups:
-                groups[rel.group] = []
-            groups[rel.group].append(rel.source)
-            groups[rel.group].append(rel.target)
+                groups[rel.group] = set()
+            groups[rel.group].add(rel.source)
+            groups[rel.group].add(rel.target)
 
-    # ノード定義
-    for person, node_id in nodes.items():
-        lines.append(f'    {node_id}["{person}"]')
+        # エッジ記録（ラベルは5文字制限）
+        edge_symbol = "-->"  # デフォルト
+        if rel.relation_type == "bidirectional":
+            edge_symbol = "<-->"
+        elif rel.relation_type == "dotted":
+            edge_symbol = "-.->."
 
-    # グループ定義
+        edges.append({
+            "src": rel.source,
+            "dst": rel.target,
+            "symbol": edge_symbol,
+            "label": rel.label[:5]  # 5文字制限
+        })
+        edge_map[edge_key] = True
+
+    # ノードIDの生成（安全な識別子）
+    def safe_id(name: str) -> str:
+        return f'id_{abs(hash(name)) % 10000}'
+
+    node_ids = {name: safe_id(name) for name in nodes}
+
+    # ノード定義（ソート済み）
+    for name in sorted(nodes):
+        node_id = node_ids[name]
+        lines.append(f'    {node_id}["{name}"]')
+
+    # グループ定義（グループ名をサニタイズ）
     if groups:
+        import re
         lines.append('')
-        for group_name, members in groups.items():
-            lines.append(f'    subgraph {group_name}')
-            for member in set(members):
-                if member in nodes:
-                    lines.append(f'        {nodes[member]}')
+        for group_name, group_nodes in groups.items():
+            # 特殊文字を除去してサニタイズ
+            safe_group_name = re.sub(r'[^0-9A-Za-z_\u3040-\u30FF\u4E00-\u9FFF\s]', '', group_name)
+            lines.append(f'    subgraph {safe_group_name}')
+            for node in sorted(group_nodes):
+                if node in node_ids:
+                    lines.append(f'        {node_ids[node]}')
             lines.append('    end')
 
-    # 関係定義
+    # エッジ定義
     lines.append('')
-    for rel in graph.relationships:
-        if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
-            continue
+    for edge in edges:
+        if edge["src"] in node_ids and edge["dst"] in node_ids:
+            src_id = node_ids[edge["src"]]
+            dst_id = node_ids[edge["dst"]]
 
-        if rel.source not in nodes or rel.target not in nodes:
-            continue
-
-        src_id = nodes[rel.source]
-        tgt_id = nodes[rel.target]
-
-        if rel.relation_type == "bidirectional":
-            arrow = "<-->"
-        elif rel.relation_type == "dotted":
-            arrow = "-.->."
-        else:
-            arrow = "-->"
-
-        lines.append(f'    {src_id} {arrow}|{rel.label}| {tgt_id}')
+            if edge["label"]:
+                if edge["symbol"] == "<-->":
+                    lines.append(f'    {src_id} <-->|{edge["label"]}| {dst_id}')
+                elif edge["symbol"] == "-.->":
+                    lines.append(f'    {src_id} -.->|{edge["label"]}| {dst_id}')
+                else:
+                    lines.append(f'    {src_id} -->|{edge["label"]}| {dst_id}')
+            else:
+                lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
 
     # 中心人物ハイライト（fuzzy matching）
     if graph.center_person:
-        if graph.center_person in nodes:
-            lines.append(f'\n    style {nodes[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+        if graph.center_person in node_ids:
+            lines.append(f'\n    style {node_ids[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
         else:
             # 部分一致で検索
-            for node_name in nodes:
+            for node_name in node_ids:
                 if graph.center_person in node_name or node_name in graph.center_person:
-                    lines.append(f'\n    style {nodes[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-                    break
+                    lines.append(f'\n    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    break  # 最初にマッチしたノードのみをハイライト
 
     return '\n'.join(lines)
 
