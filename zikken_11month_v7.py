@@ -1439,12 +1439,16 @@ elif st.session_state["authentication_status"]:
                 for item in st.session_state.chat_history:
                     if item["type"] == "question":
                         st.markdown(
-                            f'<div style="background:#DCF8C6;padding:10px;border-radius:10px;margin:5px 0;">'
+                            f'<div style="background-color:var(--secondary-background-color);'
+                            f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
+                            f'border-left:4px solid #4CAF50;">'
                             f'<b>質問:</b> {item["content"]}</div>',
                             unsafe_allow_html=True)
                     elif item["type"] == "answer":
                         st.markdown(
-                            f'<div style="background:#F1F0F0;padding:10px;border-radius:10px;margin:5px 0;">'
+                            f'<div style="background-color:var(--secondary-background-color);'
+                            f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
+                            f'border-left:4px solid #2196F3;">'
                             f'<b>回答:</b> {item["content"]}</div>',
                             unsafe_allow_html=True)
                     elif item["type"] == "image" and Path(item["path"]).exists():
@@ -1482,7 +1486,9 @@ elif st.session_state["authentication_status"]:
 
         # 質問をすぐに表示
         st.markdown(
-            f'<div style="background:#DCF8C6;padding:10px;border-radius:10px;margin:5px 0;">'
+            f'<div style="background-color:var(--secondary-background-color);'
+            f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
+            f'border-left:4px solid #4CAF50;">'
             f'<b>質問:</b> {user_input}</div>',
             unsafe_allow_html=True)
 
