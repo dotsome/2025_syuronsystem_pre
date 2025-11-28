@@ -54,25 +54,30 @@ class GoogleDriveUploader:
                 from googleapiclient.http import MediaFileUpload
 
                 creds_dict = dict(st.secrets["gcp_service_account"])
-                scope = ['https://www.googleapis.com/auth/drive.file']
+                scope = [
+                    'https://www.googleapis.com/auth/drive.file',
+                    'https://www.googleapis.com/auth/drive'  # permissions用に追加
+                ]
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                 self.service = build('drive', 'v3', credentials=creds)
 
                 # フォルダIDが設定されている場合は保存
                 if "google_drive_folder_id" in st.secrets:
                     self.folder_id = st.secrets["google_drive_folder_id"]
-
-                print(f"✅ Google Drive API接続成功")
+                    print(f"✅ Google Drive API接続成功 (folder_id: {self.folder_id})")
+                else:
+                    print(f"✅ Google Drive API接続成功 (folder_id: なし)")
             else:
                 print("⚠️ gcp_service_account がsecretsに見つかりません")
         except Exception as e:
-            print(f"Google Drive API初期化エラー: {e}")
+            print(f"❌ Google Drive API初期化エラー: {e}")
             import traceback
             traceback.print_exc()
 
     def upload_file(self, file_path: str, folder_id: str = None, max_retries: int = 3) -> str | None:
         """ファイルをGoogle Driveにアップロード（リトライ機能付き）"""
         if self.service is None:
+            print(f"⚠️ Google Drive service が初期化されていません")
             return None
 
         try:
@@ -165,7 +170,7 @@ class GoogleDriveUploader:
             return direct_link
 
         except Exception as e:
-            print(f"Google Driveアップロードエラー: {e}")
+            print(f"❌ Google Driveアップロードエラー: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -266,11 +271,25 @@ class GoogleSheetsLogger:
 
                     # Google Driveにアップロード
                     if drive_uploader:
+                        print(f"🔄 Google Driveアップロード試行: {svg_path}")
                         svg_drive_link = drive_uploader.upload_file(svg_path) or ""
+                        if svg_drive_link:
+                            print(f"✅ アップロード成功: {svg_drive_link}")
+                        else:
+                            print(f"⚠️ アップロード失敗: リンクが返されませんでした")
+                    else:
+                        print(f"⚠️ drive_uploaderがNoneです")
 
                 except Exception as e:
-                    print(f"SVG読み込み/アップロードエラー: {e}")
+                    print(f"❌ SVG読み込み/アップロードエラー: {e}")
+                    import traceback
+                    traceback.print_exc()
                     svg_content = f"[SVG読み込み失敗: {svg_path}]"
+            else:
+                if not svg_path:
+                    print(f"⚠️ svg_pathがNoneです")
+                elif not Path(svg_path).exists():
+                    print(f"⚠️ SVGファイルが存在しません: {svg_path}")
 
             # QA専用ワークシートを取得/作成（ユーザーごとに分ける）
             worksheet_name = f"QA_Logs_{user_number}"
