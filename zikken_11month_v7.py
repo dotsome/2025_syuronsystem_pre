@@ -463,6 +463,9 @@ def _build_logger(log_path: Path) -> logging.Logger:
     logger = logging.getLogger("app")
     logger.setLevel(logging.DEBUG)
 
+    # 既存のハンドラーをすべてクリア（Streamlit再実行時の重複を防ぐ）
+    logger.handlers.clear()
+
     # FileHandler
     h_file = RotatingFileHandler(
         log_path, maxBytes=1_000_000, backupCount=5, encoding="utf-8")
@@ -1418,7 +1421,7 @@ elif st.session_state["authentication_status"]:
             key="question_input",
             placeholder="例: 主人公の名前は何ですか？"
         )
-        send_button = st.button("📤 送信", type="primary", use_container_width=True)
+        send_button = st.button("📤 送信", type="primary", width="stretch")
 
         # ボタンが押されたときに user_input に値を設定
         user_input = None
@@ -1453,7 +1456,7 @@ elif st.session_state["authentication_status"]:
                             unsafe_allow_html=True)
                     elif item["type"] == "image" and Path(item["path"]).exists():
                         st.image(item["path"], caption=item["caption"],
-                                 use_container_width=True)
+                                 width="stretch")
 
         # ログダウンロードボタン
         st.markdown("---")
@@ -1466,7 +1469,7 @@ elif st.session_state["authentication_status"]:
                 data=log_content,
                 file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_chat_log.txt",
                 mime="text/plain",
-                use_container_width=True
+                width="stretch"
             )
         else:
             st.info("ログファイルがまだ作成されていません")
@@ -1568,7 +1571,7 @@ elif st.session_state["authentication_status"]:
                         {"type": "image",
                          "path": svg_file,
                          "caption": f"登場人物関係図 (質問 #{q_num})"})
-                    st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", use_container_width=True)
+                    st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", width="stretch")
 
                     # Mermaidコードを読み込む
                     mmd_path = Path(svg_file).with_suffix(".mmd")
