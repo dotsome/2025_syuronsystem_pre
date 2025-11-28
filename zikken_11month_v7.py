@@ -147,10 +147,22 @@ class GoogleDriveUploader:
                             raise  # 最後のリトライで失敗したら例外を投げる
 
             file_id = file.get('id')
-            web_link = file.get('webViewLink')
+
+            # ファイルを誰でも閲覧可能に設定
+            permission = {
+                'type': 'anyone',
+                'role': 'reader'
+            }
+            self.service.permissions().create(
+                fileId=file_id,
+                body=permission
+            ).execute()
+
+            # 画像直接表示用のURL（Google Drive direct link）
+            direct_link = f"https://drive.google.com/uc?id={file_id}"
 
             print(f"✅ Google Driveにアップロード完了: {file_path.name} (ID: {file_id})")
-            return web_link
+            return direct_link
 
         except Exception as e:
             print(f"Google Driveアップロードエラー: {e}")
