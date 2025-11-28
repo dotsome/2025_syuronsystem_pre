@@ -1400,7 +1400,10 @@ elif st.session_state["authentication_status"]:
         st.markdown(
             f"""
             <div style="
-                padding:20px;border-radius:10px;background-color:#FFF8DC;
+                padding:20px;border-radius:10px;
+                background-color:var(--background-color);
+                color:var(--text-color);
+                border:1px solid var(--secondary-background-color);
                 font-size:18px;line-height:1.8;white-space:pre-wrap;
                 min-height:500px;max-height:600px;overflow-y:auto;">
             {pages_all[real_page_index]}
