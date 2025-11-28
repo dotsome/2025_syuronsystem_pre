@@ -61,12 +61,13 @@ class GoogleDriveUploader:
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                 self.service = build('drive', 'v3', credentials=creds)
 
-                # フォルダIDが設定されている場合は保存
+                # フォルダIDが設定されている場合は保存（サービスアカウントでは必須）
                 if "google_drive_folder_id" in st.secrets:
                     self.folder_id = st.secrets["google_drive_folder_id"]
                     print(f"✅ Google Drive API接続成功 (folder_id: {self.folder_id})")
                 else:
-                    print(f"✅ Google Drive API接続成功 (folder_id: なし)")
+                    print(f"⚠️ Google Drive API接続成功したが、google_drive_folder_idが未設定です")
+                    print(f"   サービスアカウントではフォルダIDが必須です。アップロードは失敗します。")
             else:
                 print("⚠️ gcp_service_account がsecretsに見つかりません")
         except Exception as e:
@@ -102,13 +103,20 @@ class GoogleDriveUploader:
             }
             mime_type = mime_types.get(file_path.suffix, 'application/octet-stream')
 
-            # アップロード先フォルダID（優先順位: 引数 > インスタンス変数 > なし）
+            # アップロード先フォルダID（優先順位: 引数 > インスタンス変数）
             target_folder = folder_id or self.folder_id
 
-            # ファイルメタデータ
-            file_metadata = {'name': file_path.name}
-            if target_folder:
-                file_metadata['parents'] = [target_folder]
+            # サービスアカウントはフォルダIDが必須
+            if not target_folder:
+                print(f"⚠️ google_drive_folder_id が設定されていません。サービスアカウントではフォルダIDが必須です。")
+                return None
+
+            # ファイルメタデータ（parentsは必須）
+            file_metadata = {
+                'name': file_path.name,
+                'parents': [target_folder]
+            }
+            print(f"📁 アップロード先フォルダID: {target_folder}")
 
             # ファイルサイズを確認
             file_size = file_path.stat().st_size
