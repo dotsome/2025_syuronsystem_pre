@@ -429,6 +429,42 @@ def run_benchmark():
     output_dir = Path("mermaid_outputs_structured")
     output_dir.mkdir(exist_ok=True)
 
+    # =================================================
+    # Prompt Cacheウォームアップ（初回高速化）
+    # =================================================
+    logger.info("🔥 Prompt Cacheウォームアップ中...")
+    try:
+        # ダミー質問でキャッシュ作成（各モデルごと）
+        warmup_question = "主人公について教えてください"
+
+        # 中心人物特定のウォームアップ
+        _ = process_center_person(story_text, warmup_question, character_summary)
+
+        # Structured Mermaid生成のウォームアップ（各モデル）
+        for mermaid_model in TEST_MODELS["structured_mermaid"]:
+            _ = process_structured_mermaid(
+                mermaid_model,
+                story_text,
+                warmup_question,
+                "主人公"
+            )
+
+        # 回答生成のウォームアップ（各モデル）
+        dummy_mermaid = "graph LR\n    A[主人公]"
+        for answer_model in TEST_MODELS["answer_generation"]:
+            _ = process_answer_generation(
+                answer_model,
+                story_text,
+                warmup_question,
+                dummy_mermaid
+            )
+
+        logger.info("✅ Prompt Cacheウォームアップ完了")
+        logger.info("")
+    except Exception as e:
+        logger.warning(f"⚠️ ウォームアップ失敗（続行します）: {e}")
+        logger.info("")
+
     # テスト組み合わせ
     total_tests = len(TEST_QUESTIONS) * len(TEST_MODELS["structured_mermaid"]) * len(TEST_MODELS["answer_generation"])
     logger.info(f"総テスト数: {total_tests}")

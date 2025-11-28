@@ -971,18 +971,38 @@ elif st.session_state["authentication_status"]:
     出力はMermaidコードのみ（説明不要）
     """
 
-                    # 本文キャッシュ作成（Mermaid生成で使用するgpt-4.1でキャッシュ）
-                    _ = openai_chat(
-                        "gpt-4.1",
-                        messages=[
-                            {"role": "system", "content": "Mermaid図を生成する専門家です。"},
-                            {"role": "user", "content": warmup_prompt_story}
-                        ],
-                        temperature=0.3,
-                        log_label="キャッシュウォームアップ（本文・gpt-4.1）"
-                    )
+                    # Structured Outputs用ウォームアップ（gpt-4o）
+                    # 実際のMermaid生成と同じプロンプト形式でキャッシュ作成
+                    warmup_structured_prompt = f"""以下の本文を読んで、「主人公」を中心とした登場人物の関係図を作成してください。
 
-                    # 回答生成で使用するgpt-4oでもキャッシュ作成
+本文:
+{warmup_story_text}
+
+質問: 主人公について教えてください
+
+要件:
+- 「主人公」を中心とした関係図を作成
+- 主要な登場人物のみを含める（5-10人程度）
+- 関係性は簡潔に（5文字以内）
+- グループがあれば整理する
+"""
+
+                    # Structured Outputs APIでキャッシュ作成
+                    try:
+                        _ = client.beta.chat.completions.parse(
+                            model="gpt-4o",
+                            messages=[
+                                {"role": "system", "content": "登場人物の関係図を構造化データとして出力します。"},
+                                {"role": "user", "content": warmup_structured_prompt}
+                            ],
+                            response_format=CharacterGraph,
+                            temperature=0.3
+                        )
+                        logger.info("✅ Structured Outputs (gpt-4o) キャッシュ作成完了")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Structured Outputsキャッシュ作成失敗（続行します）: {e}")
+
+                    # 回答生成用キャッシュ（gpt-4o）
                     _ = openai_chat(
                         "gpt-4o",
                         messages=[
@@ -990,7 +1010,7 @@ elif st.session_state["authentication_status"]:
                             {"role": "user", "content": warmup_prompt_story}
                         ],
                         temperature=0.7,
-                        log_label="キャッシュウォームアップ（本文・gpt-4o）"
+                        log_label="キャッシュウォームアップ（回答・gpt-4o）"
                     )
 
                     # 2. 登場人物情報でキャッシュを作成
