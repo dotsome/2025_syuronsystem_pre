@@ -972,19 +972,44 @@ elif st.session_state["authentication_status"]:
     """
 
                     # Structured Outputs用ウォームアップ（gpt-4o）
-                    # 実際のMermaid生成と同じプロンプト形式でキャッシュ作成
-                    warmup_structured_prompt = f"""以下の本文を読んで、「主人公」を中心とした登場人物の関係図を作成してください。
-
+                    # 実際のMermaid生成と完全に同じプロンプト形式でキャッシュ作成
+                    warmup_main_focus = "主人公"  # ダミーの中心人物
+                    warmup_structured_prompt = f"""
 本文:
 {warmup_story_text}
 
 質問: 主人公について教えてください
+中心人物: {warmup_main_focus}
+
+タスク: 本文を読み、{warmup_main_focus}を中心とした登場人物の関係図を構造化データで出力してください。
+
+【重要な注意事項】
+❌ 絶対にやってはいけないこと:
+- 「不明」「質問者」「主体」「客体」などの抽象的な人物名は使用禁止
+- 実在しない人物を含めない
+
+✅ 正しい例:
+- center_person: "ミナ"
+- relationships: [
+    {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
+    {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
+  ]
 
 要件:
-- 「主人公」を中心とした関係図を作成
-- 主要な登場人物のみを含める（5-10人程度）
-- 関係性は簡潔に（5文字以内）
-- グループがあれば整理する
+1. {warmup_main_focus}を必ず含める
+2. 実在する登場人物のみ（具体的な人物名）
+3. 主要な関係のみ（5-10人程度）
+4. 関係タイプ:
+   - directed: 一方向（上司→部下など）
+   - bidirectional: 双方向（友人、仲間など）
+   - dotted: 補助的な関係
+5. labelは簡潔に（5文字以内推奨）
+6. 同じ2人の間の関係は最大2本まで
+
+**絶対に守ること:**
+- 「不明」「主体」「客体」などの抽象的な名前は絶対に使用しない
+- 必ず実在する登場人物のみを使用する
+- {warmup_main_focus}自身を必ず含める
 """
 
                     # Structured Outputs APIでキャッシュ作成
@@ -992,7 +1017,7 @@ elif st.session_state["authentication_status"]:
                         _ = client.beta.chat.completions.parse(
                             model="gpt-4o",
                             messages=[
-                                {"role": "system", "content": "登場人物の関係図を構造化データとして出力します。"},
+                                {"role": "system", "content": "登場人物の関係図を構造化データで出力します。"},
                                 {"role": "user", "content": warmup_structured_prompt}
                             ],
                             response_format=CharacterGraph,
