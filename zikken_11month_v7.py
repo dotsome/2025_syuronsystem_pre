@@ -947,7 +947,6 @@ elif st.session_state["authentication_status"]:
     #              小説データ読み込み
     # =================================================
     @st.cache_data
-    @log_io()                 # 読み込み状況も記録
     def load_story(filename="beast_text.json"):
         try:
             with open(filename, "r", encoding="utf-8") as f:
@@ -961,12 +960,16 @@ elif st.session_state["authentication_status"]:
                  "text": "太郎は森で不思議な獣と出会いました。その獣の名前はシロと言いました。"}
             ]
 
-    story_sections = load_story()
-    pages_all = [f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
-                 for sec in story_sections]
-    pages_ui       = pages_all[START_PAGE:]
-    total_ui_pages = len(pages_ui)
-    total_pages    = len(pages_all)
+    @st.cache_data
+    def prepare_pages():
+        """ページデータを準備（キャッシュ）"""
+        story_sections = load_story()
+        pages_all = [f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
+                     for sec in story_sections]
+        pages_ui = pages_all[START_PAGE:]
+        return pages_all, pages_ui, len(pages_ui), len(pages_all)
+
+    pages_all, pages_ui, total_ui_pages, total_pages = prepare_pages()
 
     # =================================================
     #  プロンプトキャッシュのウォームアップ（初回のみ）
@@ -1383,22 +1386,6 @@ elif st.session_state["authentication_status"]:
         st.markdown("### 📖 小説")
         real_page_index = START_PAGE + st.session_state.ui_page
 
-        nav1, nav2, nav3 = st.columns([1, 3, 1])
-        with nav1:
-            if st.button("◀ 前へ", disabled=(st.session_state.ui_page == 0)):
-                logger.info(f"Navigate prev -> UI page {st.session_state.ui_page-1}")
-                st.session_state.ui_page -= 1
-                st.rerun()
-        with nav2:
-            st.markdown(f"<center>ページ {real_page_index + 1} / {total_pages}</center>",
-                        unsafe_allow_html=True)
-        with nav3:
-            if st.button("次へ ▶",
-                         disabled=(st.session_state.ui_page >= total_ui_pages-1)):
-                logger.info(f"Navigate next -> UI page {st.session_state.ui_page+1}")
-                st.session_state.ui_page += 1
-                st.rerun()
-
         st.session_state.page = real_page_index
         st.markdown(
             f"""
@@ -1413,6 +1400,21 @@ elif st.session_state["authentication_status"]:
             </div>
             """, unsafe_allow_html=True
         )
+
+        # ページナビゲーションを本文の下に配置
+        nav1, nav2, nav3 = st.columns([1, 3, 1])
+        with nav1:
+            if st.button("◀ 前へ", disabled=(st.session_state.ui_page == 0), key="nav_prev"):
+                st.session_state.ui_page -= 1
+                st.rerun()
+        with nav2:
+            st.markdown(f"<center>ページ {real_page_index + 1} / {total_pages}</center>",
+                        unsafe_allow_html=True)
+        with nav3:
+            if st.button("次へ ▶",
+                         disabled=(st.session_state.ui_page >= total_ui_pages-1), key="nav_next"):
+                st.session_state.ui_page += 1
+                st.rerun()
 
         st.markdown("### 💬 質問")
         user_input_text = st.text_area(
