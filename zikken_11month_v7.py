@@ -260,9 +260,10 @@ class GoogleSheetsLogger:
                     print(f"SVG読み込み/アップロードエラー: {e}")
                     svg_content = f"[SVG読み込み失敗: {svg_path}]"
 
-            # QA専用ワークシートを取得/作成
+            # QA専用ワークシートを取得/作成（ユーザーごとに分ける）
+            worksheet_name = f"QA_Logs_{user_number}"
             worksheet = self.get_or_create_worksheet(
-                "QA_Logs",
+                worksheet_name,
                 headers=["Timestamp", "User", "Number", "Question#",
                         "Question", "Answer", "Has_Diagram", "Mermaid_Code",
                         "SVG_Content", "SVG_Drive_Link"]
