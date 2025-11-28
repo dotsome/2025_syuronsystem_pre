@@ -1436,6 +1436,7 @@ elif st.session_state["authentication_status"]:
 
 # 指示
 この本文の内容を根拠にユーザーの質問に日本語で丁寧に答えてください。
+**重要: 回答は100文字程度で簡潔にまとめてください。**
 
 質問: {user_input}"""
 
