@@ -27,9 +27,14 @@ st.set_page_config(page_title="人物関係想起システム",
                    page_icon="📖", layout="wide")
 
 # -------------------------------------------------
+# デモモード設定
+# -------------------------------------------------
+DEMO_MODE = False  # True: デモ（桃太郎、0章から）, False: 本番（小説、30章から）
+
+# -------------------------------------------------
 # 公開を開始するページ（0-index）
 # -------------------------------------------------
-START_PAGE = 30 #START_PAGE+1ページから読者が読み進めます
+START_PAGE = 0 if DEMO_MODE else 30
 
 # =================================================
 #                🔸  ロガー関連
@@ -947,18 +952,25 @@ elif st.session_state["authentication_status"]:
     #              小説データ読み込み
     # =================================================
     @st.cache_data
-    def load_story(filename="beast_text.json"):
-        try:
-            with open(filename, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            st.warning("⚠️ beast_text.json が見つかりません。ダミーデータを使用します。")
+    def load_story():
+        if DEMO_MODE:
+            # デモ用のテストデータ（桃太郎）
             return [
-                {"section": "1", "title": "序章",
-                 "text": "これは物語の始まりです。主人公の太郎は、異世界に転生しました。"},
-                {"section": "2", "title": "出会い",
-                 "text": "太郎は森で不思議な獣と出会いました。その獣の名前はシロと言いました。"}
+                {"section": "1", "title": "桃太郎の誕生",
+                 "text": "昔々、あるところにおじいさんとおばあさんが住んでいました。\n\nある日、おばあさんが川で洗濯をしていると、大きな桃が流れてきました。おばあさんは桃を家に持ち帰り、おじいさんと一緒に桃を割ってみると、中から元気な男の子が生まれました。\n\n二人は大喜びで、この子を「桃太郎」と名付けて育てることにしました。"},
+                {"section": "2", "title": "仲間との出会い",
+                 "text": "桃太郎は立派な若者に成長しました。\n\nある日、桃太郎は鬼ヶ島へ鬼退治に行くことを決意しました。おばあさんが作ったきびだんごを持って旅に出た桃太郎は、途中で犬、猿、キジと出会いました。\n\n桃太郎がきびだんごを分け与えると、三匹は桃太郎のお供となり、一緒に鬼ヶ島へ向かうことになりました。"},
+                {"section": "3", "title": "鬼退治",
+                 "text": "桃太郎と仲間たちは鬼ヶ島に到着しました。\n\n鬼の大将は強く恐ろしい存在でしたが、桃太郎、犬、猿、キジは力を合わせて戦いました。犬は鬼に噛みつき、猿は引っ掻き、キジは目を突き、桃太郎は刀で戦いました。\n\n激しい戦いの末、桃太郎たちは鬼を退治し、鬼が盗んだ宝物を取り戻しました。桃太郎は宝物を持って村に帰り、おじいさんとおばあさんと幸せに暮らしました。"}
             ]
+        else:
+            # 本番用のデータ
+            filename = "beast_text.json"
+            try:
+                with open(filename, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except FileNotFoundError:
+                return []
 
     @st.cache_data
     def prepare_pages():
@@ -1087,7 +1099,8 @@ elif st.session_state["authentication_status"]:
                     # 2. 登場人物情報でキャッシュを作成
                     # character_summary.txtを読み込み（この時点でセッションキャッシュにも保存される）
                     try:
-                        summary_path = Path("character_summary.txt")
+                        summary_file = "character_summary_DEMO.txt" if DEMO_MODE else "character_summary.txt"
+                        summary_path = Path(summary_file)
                         if summary_path.exists():
                             character_summary = summary_path.read_text(encoding="utf-8")
                             st.session_state.character_summary_cache = character_summary
@@ -1149,18 +1162,19 @@ elif st.session_state["authentication_status"]:
             return st.session_state.character_summary_cache
 
         try:
-            summary_path = Path("character_summary.txt")
+            summary_file = "character_summary_DEMO.txt" if DEMO_MODE else "character_summary.txt"
+            summary_path = Path(summary_file)
             if summary_path.exists():
                 summary = summary_path.read_text(encoding="utf-8")
                 # セッション状態にキャッシュ
                 st.session_state.character_summary_cache = summary
-                logger.info(f"character_summary.txt を読み込みました（{len(summary):,} 文字）")
+                logger.info(f"{summary_file} を読み込みました（{len(summary):,} 文字）")
                 return summary
             else:
-                logger.warning("character_summary.txt が見つかりません")
+                logger.warning(f"{summary_file} が見つかりません")
                 return ""
         except Exception as e:
-            logger.exception(f"character_summary.txt 読み込みエラー: {e}")
+            logger.exception(f"{summary_file} 読み込みエラー: {e}")
             return ""
 
     # =================================================
