@@ -804,6 +804,7 @@ def init_state(key, default):
 init_state("user_name",        "")
 init_state("user_number",      "")
 init_state("profile_completed", False)  # プロファイル入力完了フラグ
+init_state("summary_read",      False)  # 要約テキスト読了フラグ
 init_state("question_number",  0)
 init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE）
 # messages は毎回リセットするため、セッション状態では管理しない
@@ -908,6 +909,46 @@ elif st.session_state["authentication_status"]:
                     st.error("ニックネームと実験ナンバーの両方を入力してください")
 
         # プロファイル入力画面ではここで停止
+        st.stop()
+
+    # プロファイル入力は完了したが、要約テキストをまだ読んでいない場合
+    if not st.session_state.summary_read:
+        st.title("📚 物語の要約")
+        st.markdown("### システムを使用する前に、以下の要約をお読みください")
+
+        # TODO: 後で要約テキストファイルを作成
+        # 仮の要約テキスト
+        summary_text = """
+        ここに物語の要約が表示されます。
+
+        （このテキストは後で作成される予定です）
+
+        要約を読み終えたら、下の「次へ」ボタンを押してください。
+        """
+
+        st.markdown(
+            f"""
+            <div style="
+                padding:20px;border-radius:10px;
+                background-color:var(--background-color);
+                color:var(--text-color);
+                border:1px solid var(--secondary-background-color);
+                font-size:16px;line-height:1.8;white-space:pre-wrap;
+                max-height:500px;overflow-y:auto;">
+            {summary_text}
+            </div>
+            """, unsafe_allow_html=True
+        )
+
+        st.markdown("---")
+
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            if st.button("次へ", key="summary_next", use_container_width=True):
+                st.session_state.summary_read = True
+                st.rerun()
+
+        # 要約テキスト画面ではここで停止
         st.stop()
 
     # =================================================
