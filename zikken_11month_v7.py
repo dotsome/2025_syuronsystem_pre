@@ -1219,24 +1219,24 @@ elif st.session_state["authentication_status"]:
             return ""
 
     # =================================================
-    # GPT 5.1：登場人物質問の判定（character_summary.txt使用）
+    # GPT 4o：登場人物質問の判定（本文使用）
     # =================================================
     @log_io()
-    def is_character_question(question: str, character_summary: str) -> bool:
+    def is_character_question(question: str, story_text: str) -> bool:
         """
         質問が登場人物に関するものかを判定
 
         Args:
             question: ユーザーの質問
-            character_summary: 登場人物を網羅したあらすじ（character_summary.txt）
+            story_text: 物語の本文全体
 
         Returns:
             bool: 登場人物に関する質問ならTrue
         """
-        # Prompt Caching最適化: 登場人物情報を先頭に配置
+        # Prompt Caching最適化: 本文を先頭に配置
         prompt = f"""
-登場人物情報:
-{character_summary}
+物語の本文:
+{story_text}
 
 ---
 
@@ -1251,7 +1251,7 @@ elif st.session_state["authentication_status"]:
 """
         try:
             res = openai_chat(
-                "gpt-5.1",
+                "gpt-4o",
                 messages=[
                     {"role": "system", "content": "質問が登場人物に関するか判定します。"},
                     {"role": "user",   "content": prompt}
@@ -1270,8 +1270,7 @@ elif st.session_state["authentication_status"]:
     # =================================================
     @log_io(mask=None)
     def generate_mermaid_file(question: str, story_text: str, q_num: int,
-                             user_dir_path: str, user_name: str, user_number: str,
-                             character_summary: str) -> str | None:
+                             user_dir_path: str, user_name: str, user_number: str) -> str | None:
         """
         2段階プロセス：
         1. GPTでざっくりMermaid図を生成
@@ -1280,20 +1279,19 @@ elif st.session_state["authentication_status"]:
 
         Args:
             question: ユーザーの質問
-            story_text: 物語本文
+            story_text: 物語本文全体
             q_num: 質問番号
             user_dir_path: ユーザーディレクトリパス
             user_name: ユーザー名
             user_number: ユーザー番号
-            character_summary: 登場人物を網羅したあらすじ
         """
         # ──────────────────────────
-        # Step 1: 質問の中心人物を特定（character_summary使用）
-        # Prompt Caching最適化: 登場人物情報を先頭に配置
+        # Step 1: 質問の中心人物を特定（本文使用）
+        # Prompt Caching最適化: 本文を先頭に配置
         # ──────────────────────────
         who_prompt = f"""
-登場人物情報:
-{character_summary}
+物語の本文:
+{story_text}
 
 ---
 
@@ -1302,7 +1300,7 @@ elif st.session_state["authentication_status"]:
 この質問の中心となる登場人物の名前を1つだけ答えてください。
 
 要件:
-- 登場人物情報に記載されている正確な人物名で回答
+- 本文に登場する正確な人物名で回答
 - 人物名のみを1行で出力（説明不要）
 
 回答:
@@ -1310,7 +1308,7 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_who = openai_chat(
-                "gpt-5.1",
+                "gpt-4o",
                 messages=[
                     {"role": "system", "content": "質問の中心人物を特定します。"},
                     {"role": "user", "content": who_prompt}
@@ -1554,11 +1552,8 @@ elif st.session_state["authentication_status"]:
 
         story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
 
-        # 登場人物あらすじを読み込み
-        character_summary = load_character_summary()
-
-        # 登場人物質問かどうか判定
-        is_char_question = is_character_question(user_input, character_summary)
+        # 登場人物質問かどうか判定（本文を使用）
+        is_char_question = is_character_question(user_input, story_text_so_far)
 
         # 毎回新しいmessagesを作成（Prompt Caching最適化）
         # キャッシュ可能な本文を先頭に配置
@@ -1604,8 +1599,7 @@ elif st.session_state["authentication_status"]:
                         q_num,
                         str(user_dir),
                         user_name,
-                        user_number,
-                        character_summary
+                        user_number
                     )
                     answer_future = executor.submit(
                         openai_chat,
