@@ -32,6 +32,11 @@ st.set_page_config(page_title="人物関係想起システム",
 DEMO_MODE = False  # True: デモ（桃太郎、0章から）, False: 本番（小説、30章から）
 
 # -------------------------------------------------
+# 小説選択
+# -------------------------------------------------
+NOVEL_FILE = "beast_text.json"  # 使用する小説ファイル: "beast_text.json" または "shadow_text.json"
+
+# -------------------------------------------------
 # 公開を開始するページ（0-index）
 # -------------------------------------------------
 START_PAGE = 0 if DEMO_MODE else 30
@@ -1005,12 +1010,12 @@ elif st.session_state["authentication_status"]:
                  "text": "桃太郎と仲間たちは鬼ヶ島に到着しました。\n\n鬼の大将は強く恐ろしい存在でしたが、桃太郎、犬、猿、キジは力を合わせて戦いました。犬は鬼に噛みつき、猿は引っ掻き、キジは目を突き、桃太郎は刀で戦いました。\n\n激しい戦いの末、桃太郎たちは鬼を退治し、鬼が盗んだ宝物を取り戻しました。桃太郎は宝物を持って村に帰り、おじいさんとおばあさんと幸せに暮らしました。"}
             ]
         else:
-            # 本番用のデータ
-            filename = "beast_text.json"
+            # 本番用のデータ（NOVEL_FILEで指定された小説を読み込み）
             try:
-                with open(filename, "r", encoding="utf-8") as f:
+                with open(NOVEL_FILE, "r", encoding="utf-8") as f:
                     return json.load(f)
             except FileNotFoundError:
+                st.error(f"⚠️ 小説ファイル '{NOVEL_FILE}' が見つかりません")
                 return []
 
     @st.cache_data
