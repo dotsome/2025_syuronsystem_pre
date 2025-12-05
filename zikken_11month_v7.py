@@ -1119,7 +1119,7 @@ elif st.session_state["authentication_status"]:
                     # Structured Outputs APIでキャッシュ作成
                     try:
                         _ = client.beta.chat.completions.parse(
-                            model="gpt-4o",
+                            model="gpt-5.1",
                             messages=[
                                 {"role": "system", "content": "登場人物の関係図を構造化データで出力します。"},
                                 {"role": "user", "content": warmup_structured_prompt}
@@ -1127,19 +1127,19 @@ elif st.session_state["authentication_status"]:
                             response_format=CharacterGraph,
                             temperature=0.3
                         )
-                        logger.info("✅ Structured Outputs (gpt-4o) キャッシュ作成完了")
+                        logger.info("✅ Structured Outputs (gpt-5.1) キャッシュ作成完了")
                     except Exception as e:
                         logger.warning(f"⚠️ Structured Outputsキャッシュ作成失敗（続行します）: {e}")
 
-                    # 回答生成用キャッシュ（gpt-4o）
+                    # 回答生成用キャッシュ（gpt-5.1）
                     _ = openai_chat(
-                        "gpt-4o",
+                        "gpt-5.1",
                         messages=[
                             {"role": "system", "content": "質問に回答するアシスタントです。"},
                             {"role": "user", "content": warmup_prompt_story}
                         ],
                         temperature=0.7,
-                        log_label="キャッシュウォームアップ（回答・gpt-4o）"
+                        log_label="キャッシュウォームアップ（回答・gpt-5.1）"
                     )
 
                     # 2. 登場人物情報でキャッシュを作成
@@ -1256,7 +1256,7 @@ elif st.session_state["authentication_status"]:
 """
         try:
             res = openai_chat(
-                "gpt-4o",
+                "gpt-5.1",
                 messages=[
                     {"role": "system", "content": "質問が登場人物に関するか判定します。"},
                     {"role": "user",   "content": prompt}
@@ -1313,7 +1313,7 @@ elif st.session_state["authentication_status"]:
 
         try:
             res_who = openai_chat(
-                "gpt-4o",
+                "gpt-5.1",
                 messages=[
                     {"role": "system", "content": "質問の中心人物を特定します。"},
                     {"role": "user", "content": who_prompt}
@@ -1373,7 +1373,7 @@ elif st.session_state["authentication_status"]:
         try:
             # Structured Outputs APIを使用
             response = client.beta.chat.completions.parse(
-                model="gpt-4o",  # Structured OutputsはGPT-4o以降で対応
+                model="gpt-5.1",  # GPT-5.1に変更
                 messages=[
                     {"role": "system", "content": "登場人物の関係図を構造化データで出力します。"},
                     {"role": "user", "content": structured_prompt}
@@ -1608,7 +1608,7 @@ elif st.session_state["authentication_status"]:
                     )
                     answer_future = executor.submit(
                         openai_chat,
-                        "gpt-4o",  # GPT-4oを使用（高速化）
+                        "gpt-5.1",  # GPT-5.1を使用
                         messages,
                         log_label="質問への回答生成",
                         temperature=0.7
@@ -1639,7 +1639,7 @@ elif st.session_state["authentication_status"]:
                 status_placeholder.info("💭 回答を生成中...")
 
                 resp = openai_chat(
-                    "gpt-4o",  # GPT-4oを使用（高速化）
+                    "gpt-5.1",  # GPT-5.1を使用
                     messages=messages,
                     temperature=0.7,
                     log_label="質問への回答生成"
