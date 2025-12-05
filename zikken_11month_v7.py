@@ -831,6 +831,107 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
         filtered_lines.pop()
     return '\n'.join(filtered_lines)
 
+def build_mermaid_without_subgraph(graph: CharacterGraph) -> str:
+    """
+    subgraphなしでMermaid図を構築（タイムアウト対策）
+
+    Args:
+        graph: CharacterGraphオブジェクト
+
+    Returns:
+        Mermaid図のコード（subgraphなし）
+    """
+    lines = ["graph LR"]
+
+    # ノードとエッジを収集
+    nodes = set()
+    edges = []
+    edge_map = {}
+
+    for rel in graph.relationships:
+        # INVALIDチェック
+        if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
+            continue
+
+        # 空文字列チェック
+        if not rel.source or not rel.target or not rel.source.strip() or not rel.target.strip():
+            continue
+
+        # 重複チェック
+        edge_key = (rel.source, rel.target)
+        if edge_key in edge_map:
+            continue
+
+        nodes.add(rel.source)
+        nodes.add(rel.target)
+
+        # エッジ記録
+        edge_symbol = "-->"
+        if rel.relation_type == "bidirectional":
+            edge_symbol = "<-->"
+        elif rel.relation_type == "dotted":
+            edge_symbol = "-.->"
+
+        edges.append({
+            "src": rel.source,
+            "dst": rel.target,
+            "symbol": edge_symbol,
+            "label": rel.label[:5]
+        })
+        edge_map[edge_key] = True
+
+    # ノードIDの生成
+    def safe_id(name: str) -> str:
+        return f'id_{abs(hash(name)) % 10000}'
+
+    node_ids = {name: safe_id(name) for name in nodes}
+
+    # ノード定義
+    for name in sorted(nodes):
+        node_id = node_ids[name]
+        lines.append(f'    {node_id}["{name}"]')
+
+    # エッジ定義（subgraphはスキップ）
+    lines.append('')
+    for edge in edges:
+        if not edge.get("src") or not edge.get("dst"):
+            continue
+        if edge["src"] not in node_ids or edge["dst"] not in node_ids:
+            continue
+
+        src_id = node_ids[edge["src"]]
+        dst_id = node_ids[edge["dst"]]
+
+        if not src_id or not dst_id:
+            continue
+
+        if edge.get("label"):
+            if edge["symbol"] == "<-->":
+                lines.append(f'    {src_id} <-->|{edge["label"]}| {dst_id}')
+            elif edge["symbol"] == "-.->":
+                lines.append(f'    {src_id} -.->|{edge["label"]}| {dst_id}')
+            else:
+                lines.append(f'    {src_id} -->|{edge["label"]}| {dst_id}')
+        else:
+            lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
+
+    # 中心人物ハイライト
+    if graph.center_person:
+        lines.append('')
+        if graph.center_person in node_ids:
+            lines.append(f'    style {node_ids[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+        else:
+            for node_name in node_ids:
+                if graph.center_person in node_name or node_name in graph.center_person:
+                    lines.append(f'    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    break
+
+    # 末尾の空行を削除
+    filtered_lines = [line for line in lines if line is not None]
+    while filtered_lines and filtered_lines[-1] == '':
+        filtered_lines.pop()
+    return '\n'.join(filtered_lines)
+
 # =================================================
 #           Streamlit セッション初期化
 # =================================================
@@ -1440,7 +1541,7 @@ elif st.session_state["authentication_status"]:
             final_mermaid = f"graph LR\n    {main_focus}"
 
         # ──────────────────────────
-        # Step 3: Kroki APIでSVG生成
+        # Step 3: Kroki APIでSVG生成（リトライ付き）
         # ──────────────────────────
         mmd_path = Path(user_dir_path) / f"{user_name}_{user_number}_{q_num}.mmd"
         svg_path = mmd_path.with_suffix(".svg")
@@ -1448,41 +1549,79 @@ elif st.session_state["authentication_status"]:
         # Mermaidファイルを保存
         mmd_path.write_text(final_mermaid, encoding="utf-8")
 
-        try:
-            # Kroki APIを使用してSVG生成
-            import base64
-            import zlib
-            import requests
+        import base64
+        import zlib
+        import requests
 
-            # MermaidコードをKroki形式でエンコード（zlib + base64）
-            compressed = zlib.compress(final_mermaid.encode('utf-8'), 6)
-            encoded = base64.urlsafe_b64encode(compressed).decode('utf-8')
+        max_retries = 3
+        retry_count = 0
 
-            # Kroki APIのURL（SVG形式）
-            api_url = f"https://kroki.io/mermaid/svg/{encoded}"
+        while retry_count < max_retries:
+            try:
+                # MermaidコードをKroki形式でエンコード（zlib + base64）
+                compressed = zlib.compress(final_mermaid.encode('utf-8'), 6)
+                encoded = base64.urlsafe_b64encode(compressed).decode('utf-8')
 
-            # SVG画像をダウンロード
-            response = requests.get(api_url, timeout=30)
+                # Kroki APIのURL（SVG形式）
+                api_url = f"https://kroki.io/mermaid/svg/{encoded}"
 
-            # エラーレスポンスの詳細をログ出力
-            if response.status_code != 200:
-                logger.error(f"[Q{q_num}] Kroki API error: status={response.status_code}, response={response.text[:500]}")
-                logger.error(f"[Q{q_num}] Sent Mermaid code:\n{final_mermaid}")
+                # SVG画像をダウンロード
+                response = requests.get(api_url, timeout=30)
 
-            response.raise_for_status()
+                # エラーレスポンスの詳細をログ出力
+                if response.status_code != 200:
+                    logger.error(f"[Q{q_num}] Kroki API error (attempt {retry_count + 1}/{max_retries}): status={response.status_code}, response={response.text[:500]}")
+                    logger.error(f"[Q{q_num}] Sent Mermaid code:\n{final_mermaid}")
 
-            # SVGファイルとして保存
-            svg_path.write_text(response.text, encoding="utf-8")
-            logger.info(f"[Q{q_num}] SVG generated successfully via Kroki API")
-            return str(svg_path)
+                response.raise_for_status()
 
-        except Exception as e:
-            logger.exception(f"[Q{q_num}] Mermaid SVG generation failed")
-            logger.error(f"[Q{q_num}] Failed Mermaid code:\n{final_mermaid}")
-            st.warning("⚠️ Mermaid 図生成に失敗しました。生成されたコードを表示します。")
-            st.code(final_mermaid, language="mermaid")
-            st.error(f"エラー詳細: {str(e)}")
-            return None
+                # SVGファイルとして保存
+                svg_path.write_text(response.text, encoding="utf-8")
+                logger.info(f"[Q{q_num}] SVG generated successfully via Kroki API")
+                return str(svg_path)
+
+            except Exception as e:
+                retry_count += 1
+                logger.warning(f"[Q{q_num}] Mermaid SVG generation failed (attempt {retry_count}/{max_retries}): {e}")
+
+                if retry_count < max_retries:
+                    # 再生成を試みる
+                    logger.info(f"[Q{q_num}] Retrying with new Mermaid generation...")
+                    st.info(f"🔄 図の生成に失敗しました。再生成しています... ({retry_count}/{max_retries})")
+
+                    try:
+                        # Structured Outputs APIで再度生成
+                        response = client.beta.chat.completions.parse(
+                            model="gpt-5.1",
+                            messages=[
+                                {"role": "system", "content": "登場人物の関係図を構造化データで出力します。"},
+                                {"role": "user", "content": structured_prompt}
+                            ],
+                            response_format=CharacterGraph,
+                            temperature=0.3
+                        )
+
+                        graph_data = response.choices[0].message.parsed
+                        logger.info(f"[Q{q_num}] Retry: Structured data: {len(graph_data.relationships)} relationships")
+
+                        # Mermaid図を再構築
+                        final_mermaid = build_mermaid_from_structured(graph_data)
+                        logger.debug(f"[Q{q_num}] Retry: Final Mermaid length = {len(final_mermaid)} chars")
+
+                        # Mermaidファイルを更新
+                        mmd_path.write_text(final_mermaid, encoding="utf-8")
+
+                    except Exception as retry_error:
+                        logger.exception(f"[Q{q_num}] Retry generation failed: {retry_error}")
+                        # 再生成に失敗した場合は次のループで同じMermaidコードを使う
+                        continue
+                else:
+                    # 最大リトライ回数に達した
+                    logger.error(f"[Q{q_num}] Failed Mermaid code after {max_retries} attempts:\n{final_mermaid}")
+                    st.warning("⚠️ Mermaid 図生成に失敗しました。生成されたコードを表示します。")
+                    st.code(final_mermaid, language="mermaid")
+                    st.error(f"エラー詳細: {e}")
+                    return None
 
     # =================================================
     #                   レイアウト
