@@ -34,7 +34,7 @@ DEMO_MODE = False  # True: デモ（桃太郎、0章から）, False: 本番（�
 # -------------------------------------------------
 # 小説選択
 # -------------------------------------------------
-NOVEL_FILE = "beast_text.json"  # 使用する小説ファイル: "beast_text.json" または "shadow_text.json"
+NOVEL_FILE = "shadow_text.json"  # 使用する小説ファイル: "beast_text.json" または "shadow_text.json"
 
 # -------------------------------------------------
 # 公開を開始するページ（0-index）
