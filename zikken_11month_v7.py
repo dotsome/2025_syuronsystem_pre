@@ -736,7 +736,7 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
         if rel.relation_type == "bidirectional":
             edge_symbol = "<-->"
         elif rel.relation_type == "dotted":
-            edge_symbol = "-.->."
+            edge_symbol = "-.->"
 
         edges.append({
             "src": rel.source,
