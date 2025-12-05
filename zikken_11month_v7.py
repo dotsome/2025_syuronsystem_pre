@@ -1426,7 +1426,8 @@ elif st.session_state["authentication_status"]:
 
             # Mermaid図を構築
             final_mermaid = build_mermaid_from_structured(graph_data)
-            logger.debug(f"[Q{q_num}] Final Mermaid = {final_mermaid[:500]}")
+            logger.debug(f"[Q{q_num}] Final Mermaid length = {len(final_mermaid)} chars")
+            logger.debug(f"[Q{q_num}] Final Mermaid =\n{final_mermaid}")
 
         except Exception:
             logger.exception("[Mermaid] Structured generation error")
@@ -1457,6 +1458,12 @@ elif st.session_state["authentication_status"]:
 
             # SVG画像をダウンロード
             response = requests.get(api_url, timeout=30)
+
+            # エラーレスポンスの詳細をログ出力
+            if response.status_code != 200:
+                logger.error(f"[Q{q_num}] Kroki API error: status={response.status_code}, response={response.text[:500]}")
+                logger.error(f"[Q{q_num}] Sent Mermaid code:\n{final_mermaid}")
+
             response.raise_for_status()
 
             # SVGファイルとして保存
@@ -1466,6 +1473,7 @@ elif st.session_state["authentication_status"]:
 
         except Exception as e:
             logger.exception(f"[Q{q_num}] Mermaid SVG generation failed")
+            logger.error(f"[Q{q_num}] Failed Mermaid code:\n{final_mermaid}")
             st.warning("⚠️ Mermaid 図生成に失敗しました。生成されたコードを表示します。")
             st.code(final_mermaid, language="mermaid")
             st.error(f"エラー詳細: {str(e)}")
