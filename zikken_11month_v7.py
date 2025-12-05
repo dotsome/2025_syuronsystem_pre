@@ -706,18 +706,26 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
     groups = {}
     edge_map = {}  # (src, dst)のペアをキーにして重複チェック
 
+    # デバッグ用: フィルタされた関係を記録
+    filtered_count = {"invalid": 0, "empty": 0, "duplicate": 0}
+
     for rel in graph.relationships:
         # INVALIDチェック
         if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
+            filtered_count["invalid"] += 1
+            logger.debug(f"[Mermaid] Filtered INVALID node: {rel.source} -> {rel.target}")
             continue
 
         # 空文字列・None・空白のみのチェック
         if not rel.source or not rel.target or not rel.source.strip() or not rel.target.strip():
+            filtered_count["empty"] += 1
+            logger.warning(f"[Mermaid] Filtered EMPTY/WHITESPACE: source='{rel.source}', target='{rel.target}', label='{rel.label}'")
             continue
 
         # 同じペア（順序あり）の重複チェック
         edge_key = (rel.source, rel.target)
         if edge_key in edge_map:
+            filtered_count["duplicate"] += 1
             # 既に同じ方向の関係がある場合はスキップ
             continue
 
@@ -746,6 +754,9 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
             "label": rel.label[:5]  # 5文字制限
         })
         edge_map[edge_key] = True
+
+    # フィルタリング統計をログ出力
+    logger.info(f"[Mermaid] Filtering stats - Invalid: {filtered_count['invalid']}, Empty: {filtered_count['empty']}, Duplicate: {filtered_count['duplicate']}, Valid: {len(edges)}")
 
     # ノードIDの生成（安全な識別子）
     def safe_id(name: str) -> str:
@@ -1399,6 +1410,18 @@ elif st.session_state["authentication_status"]:
             )
 
             graph_data = response.choices[0].message.parsed
+
+            # デバッグ: 生のリレーションシップデータをログ出力
+            raw_rels = []
+            for i, rel in enumerate(graph_data.relationships):
+                raw_rels.append({
+                    'index': i,
+                    'source': rel.source if rel.source else '[EMPTY]',
+                    'target': rel.target if rel.target else '[EMPTY]',
+                    'label': rel.label if rel.label else '[EMPTY]',
+                    'type': rel.relation_type
+                })
+            logger.debug(f"[Q{q_num}] Raw relationships from API: {raw_rels}")
             logger.info(f"[Q{q_num}] Structured data: {len(graph_data.relationships)} relationships")
 
             # Mermaid図を構築
