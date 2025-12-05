@@ -711,7 +711,8 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
         if rel.source in INVALID_NODES or rel.target in INVALID_NODES:
             continue
 
-        if not rel.source or not rel.target:
+        # 空文字列・None・空白のみのチェック
+        if not rel.source or not rel.target or not rel.source.strip() or not rel.target.strip():
             continue
 
         # 同じペア（順序あり）の重複チェック
@@ -772,19 +773,28 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
     # エッジ定義
     lines.append('')
     for edge in edges:
-        if edge["src"] in node_ids and edge["dst"] in node_ids:
-            src_id = node_ids[edge["src"]]
-            dst_id = node_ids[edge["dst"]]
+        # srcとdstが存在し、空でないことを確認
+        if not edge.get("src") or not edge.get("dst"):
+            continue
+        if edge["src"] not in node_ids or edge["dst"] not in node_ids:
+            continue
 
-            if edge["label"]:
-                if edge["symbol"] == "<-->":
-                    lines.append(f'    {src_id} <-->|{edge["label"]}| {dst_id}')
-                elif edge["symbol"] == "-.->":
-                    lines.append(f'    {src_id} -.->|{edge["label"]}| {dst_id}')
-                else:
-                    lines.append(f'    {src_id} -->|{edge["label"]}| {dst_id}')
+        src_id = node_ids[edge["src"]]
+        dst_id = node_ids[edge["dst"]]
+
+        # ノードIDが有効かチェック
+        if not src_id or not dst_id:
+            continue
+
+        if edge.get("label"):
+            if edge["symbol"] == "<-->":
+                lines.append(f'    {src_id} <-->|{edge["label"]}| {dst_id}')
+            elif edge["symbol"] == "-.->":
+                lines.append(f'    {src_id} -.->|{edge["label"]}| {dst_id}')
             else:
-                lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
+                lines.append(f'    {src_id} -->|{edge["label"]}| {dst_id}')
+        else:
+            lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
 
     # 中心人物ハイライト（fuzzy matching）
     if graph.center_person:
