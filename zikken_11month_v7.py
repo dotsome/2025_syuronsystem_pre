@@ -798,16 +798,22 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
 
     # 中心人物ハイライト（fuzzy matching）
     if graph.center_person:
+        lines.append('')  # スタイル定義前に空行
         if graph.center_person in node_ids:
-            lines.append(f'\n    style {node_ids[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+            lines.append(f'    style {node_ids[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
         else:
             # 部分一致で検索
             for node_name in node_ids:
                 if graph.center_person in node_name or node_name in graph.center_person:
-                    lines.append(f'\n    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    lines.append(f'    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
                     break  # 最初にマッチしたノードのみをハイライト
 
-    return '\n'.join(lines)
+    # Noneを除外し、末尾の空行を削除
+    filtered_lines = [line for line in lines if line is not None]
+    # 末尾の連続する空行を削除
+    while filtered_lines and filtered_lines[-1] == '':
+        filtered_lines.pop()
+    return '\n'.join(filtered_lines)
 
 # =================================================
 #           Streamlit セッション初期化
