@@ -773,8 +773,13 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
     if groups:
         lines.append('')
         for group_name, group_nodes in groups.items():
-            # 特殊文字を除去してサニタイズ
-            safe_group_name = re.sub(r'[^0-9A-Za-z_\u3040-\u30FF\u4E00-\u9FFF\s]', '', group_name)
+            # 中黒を除去（Kroki APIのエンコーディングで問題を引き起こすため）
+            safe_group_name = group_name.replace('・', '')
+            # その他の特殊文字を除去してサニタイズ
+            safe_group_name = re.sub(r'[^0-9A-Za-z_\u3040-\u309F\u30A0-\u30FE\u4E00-\u9FFF\s]', '', safe_group_name)
+            # 空白のみになった場合はデフォルト名
+            if not safe_group_name.strip():
+                safe_group_name = 'group'
             lines.append(f'    subgraph {safe_group_name}')
             for node in sorted(group_nodes):
                 if node in node_ids:
