@@ -37,28 +37,22 @@ st.set_page_config(page_title="人物関係想起システム",
 # 4: モード4「X-1章までの情報を使い質問応答を行う（関係図は生成しない），読者はX章以降を読む」
 # 5: モード5「Y章までの情報を使い関係図や質問応答を行う，関係図作成でmainの人物は特定せず全体の人物関係図を出力する，読者はX章以降を読む」
 
-EXPERIMENT_MODE = 1  # 実験モード番号 (0-5)
-
 # 実験設定
 X = 30  # 読者が読み始める章
 Y = 40  # モード3,5で使用する最大章数
 
-# モード別設定
-DEMO_MODE = (EXPERIMENT_MODE == 0)
-START_PAGE = 0 if DEMO_MODE else X
-
-# モード別機能フラグ
-MODE_CONFIG = {
-    0: {"use_graph": True,  "use_qa": True,  "context_range": "all",    "graph_type": "main_character"},  # デモ
-    1: {"use_graph": True,  "use_qa": True,  "context_range": X-1,      "graph_type": "main_character"},  # モード1
-    2: {"use_graph": False, "use_qa": False, "context_range": 0,        "graph_type": None},              # モード2
-    3: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "main_character"},  # モード3
-    4: {"use_graph": False, "use_qa": True,  "context_range": X-1,      "graph_type": None},              # モード4
-    5: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "all_characters"},  # モード5
-}
-
-# 現在のモード設定を取得
-CURRENT_MODE = MODE_CONFIG[EXPERIMENT_MODE]
+# モード別機能フラグを返す関数
+def get_mode_config(experiment_mode: int):
+    """実験モード番号から設定を取得"""
+    MODE_CONFIG = {
+        0: {"use_graph": True,  "use_qa": True,  "context_range": "all",    "graph_type": "main_character"},  # デモ
+        1: {"use_graph": True,  "use_qa": True,  "context_range": X-1,      "graph_type": "main_character"},  # モード1
+        2: {"use_graph": False, "use_qa": False, "context_range": 0,        "graph_type": None},              # モード2
+        3: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "main_character"},  # モード3
+        4: {"use_graph": False, "use_qa": True,  "context_range": X-1,      "graph_type": None},              # モード4
+        5: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "all_characters"},  # モード5
+    }
+    return MODE_CONFIG.get(experiment_mode, MODE_CONFIG[1])  # デフォルトはモード1
 
 # -------------------------------------------------
 # 小説選択
@@ -1084,7 +1078,7 @@ elif st.session_state["authentication_status"]:
         st.markdown("### システムを使用する前に、以下の要約をお読みください")
 
         # デモモードかどうかで表示テキストを切り替え
-        if EXPERIMENT_MODE == 0:
+        if int(st.session_state.user_number) == 0:
             summary_text = "これはデモモードです。本番はここに要約する文章を表示します。"
         else:
             summary_text = """主人公シドは幼い頃から「陰の実力者」に憧れ、現代日本で格闘技や怪しい修行に明け暮れるが、トラックに轢かれてあっさり死亡し、魔力のある異世界の貴族カゲノー家に転生する。今度こそ陰の実力者になるべく、表では凡庸なモブ少年を演じつつ、裏で魔力と剣技を極限まで鍛え、スライム製ボディスーツや変形剣を開発して盗賊団を虐殺、資金と実験材料を集める。その過程で肉塊となっていた金髪エルフ少女アルファを救い、でっち上げの「ディアボロス教団」と「魔人ディアボロスの呪い」の神話を語って組織シャドウガーデンを設立、アルファやベータ、ガンマら元悪魔憑き達が本気でそれを信じて世界規模の秘密結社に育ててしまう。数年後、シドの姉クレアが教団に攫われる事件が起き、シャドウとなった彼はアルファ達と共に地下施設を急襲、覚醒薬で怪物化したオルバ子爵を圧倒的な技量と奥義「アイ・アム・アトミック」で消し飛ばす。その後シドは王都の魔剣士学園に入り、ツンデレ王女アレクシアに罰ゲーム告白からまさかの交際を申し込まれ、婚約者候補のゼノンとの駆け引きに巻き込まれる。やがてアレクシア誘拐事件が再び発生し、教団の実験施設、化物化した被験者、ゼノンのラウンズ入りの野望などが交錯、アルファやアイリス王女もそれぞれ別戦場で怪物と激突する中、シャドウが放った「アトミック」によってアジトごとゼノンは蒸発する。表向きはアーティファクト暴走として処理され、シドとアレクシアは関係を解消。裏ではガンマがシドの前世知識をもとにミツゴシ商会を巨大企業へ育て、チョコレートや化粧品で資金と影響力を拡大しつつ、教団のチルドレンやシャドウを騙る黒装束の偽者をニューらが拷問して始末する。一方で学術学園では天才研究者シェリーと義父ルスランが教団由来のアーティファクト解析に乗り出し、アイリスとアレクシアは紅の騎士団を軸に教団とシャドウガーデン、どちらが真の敵なのか探り始める。"""
@@ -1184,6 +1178,15 @@ elif st.session_state["authentication_status"]:
 
         # 要約テキスト画面ではここで停止
         st.stop()
+
+    # =================================================
+    #          🔸 実験モード設定（ユーザー入力後）
+    # =================================================
+    # ユーザーが入力した実験ナンバーから実験モードを取得
+    EXPERIMENT_MODE = int(st.session_state.user_number)
+    CURRENT_MODE = get_mode_config(EXPERIMENT_MODE)
+    DEMO_MODE = (EXPERIMENT_MODE == 0)
+    START_PAGE = 0 if DEMO_MODE else X
 
     # =================================================
     #          🔸 ユーザー別ディレクトリ & ログ
