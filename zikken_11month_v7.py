@@ -1238,8 +1238,8 @@ elif st.session_state["authentication_status"]:
     #              小説データ読み込み
     # =================================================
     @st.cache_data
-    def load_story():
-        if DEMO_MODE:
+    def load_story(demo_mode: bool):
+        if demo_mode:
             # デモ用のテストデータ（桃太郎）
             return [
                 {"section": "1", "title": "桃太郎の誕生",
@@ -1259,15 +1259,16 @@ elif st.session_state["authentication_status"]:
                 return []
 
     @st.cache_data
-    def prepare_pages():
+    def prepare_pages(demo_mode: bool, start_page: int):
         """ページデータを準備（キャッシュ）"""
-        story_sections = load_story()
-        pages_all = [f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
-                     for sec in story_sections]
-        pages_ui = pages_all[START_PAGE:]
-        return pages_all, pages_ui, len(pages_ui), len(pages_all)
+        story_sections = load_story(demo_mode)
+        # story_sectionsをそのまま返す（辞書形式）
+        pages_all = story_sections
+        pages_ui_formatted = [f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
+                              for sec in story_sections[start_page:]]
+        return pages_all, pages_ui_formatted, len(pages_ui_formatted), len(pages_all)
 
-    pages_all, pages_ui, total_ui_pages, total_pages = prepare_pages()
+    pages_all, pages_ui, total_ui_pages, total_pages = prepare_pages(DEMO_MODE, START_PAGE)
 
     # =================================================
     #  プロンプトキャッシュのウォームアップ（初回のみ）
@@ -1289,7 +1290,10 @@ elif st.session_state["authentication_status"]:
             with st.spinner("🔥 システムを準備中...（初回のみ、数秒お待ちください）"):
                 try:
                     # 1. START_PAGEまでの本文でキャッシュを作成
-                    warmup_story_text = "\n\n".join(pages_all[:START_PAGE + 1])
+                    warmup_story_text = "\n\n".join([
+                        f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
+                        for sec in pages_all[:START_PAGE + 1]
+                    ])
 
                     # ダミー質問でMermaid図生成プロンプトを実行（本文キャッシュ作成）
                     warmup_summary = """主人公シドは幼い頃から「陰の実力者」に憧れ、現代日本で格闘技や怪しい修行に明け暮れるが、トラックに轢かれてあっさり死亡し、魔力のある異世界の貴族カゲノー家に転生する。今度こそ陰の実力者になるべく、表では凡庸なモブ少年を演じつつ、裏で魔力と剣技を極限まで鍛え、スライム製ボディスーツや変形剣を開発して盗賊団を虐殺、資金と実験材料を集める。その過程で肉塊となっていた金髪エルフ少女アルファを救い、でっち上げの「ディアボロス教団」と「魔人ディアボロスの呪い」の神話を語って組織シャドウガーデンを設立、アルファやベータ、ガンマら元悪魔憑き達が本気でそれを信じて世界規模の秘密結社に育ててしまう。数年後、シドの姉クレアが教団に攫われる事件が起き、シャドウとなった彼はアルファ達と共に地下施設を急襲、覚醒薬で怪物化したオルバ子爵を圧倒的な技量と奥義「アイ・アム・アトミック」で消し飛ばす。その後シドは王都の魔剣士学園に入り、ツンデレ王女アレクシアに罰ゲーム告白からまさかの交際を申し込まれ、婚約者候補のゼノンとの駆け引きに巻き込まれる。やがてアレクシア誘拐事件が再び発生し、教団の実験施設、化物化した被験者、ゼノンのラウンズ入りの野望などが交錯、アルファやアイリス王女もそれぞれ別戦場で怪物と激突する中、シャドウが放った「アトミック」によってアジトごとゼノンは蒸発する。表向きはアーティファクト暴走として処理され、シドとアレクシアは関係を解消。裏ではガンマがシドの前世知識をもとにミツゴシ商会を巨大企業へ育て、チョコレートや化粧品で資金と影響力を拡大しつつ、教団のチルドレンやシャドウを騙る黒装束の偽者をニューらが拷問して始末する。一方で学術学園では天才研究者シェリーと義父ルスランが教団由来のアーティファクト解析に乗り出し、アイリスとアレクシアは紅の騎士団を軸に教団とシャドウガーデン、どちらが真の敵なのか探り始める。"""
@@ -1934,7 +1938,11 @@ elif st.session_state["authentication_status"]:
             # 指定された章数までを使用
             context_end_index = min(CURRENT_MODE["context_range"], len(pages_all))
 
-        story_text_so_far = "\n\n".join(pages_all[:context_end_index])
+        # pages_allは辞書形式なので、テキストに変換
+        story_text_so_far = "\n\n".join([
+            f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
+            for sec in pages_all[:context_end_index]
+        ])
 
         # 登場人物質問かどうか判定（本文を使用）
         is_char_question = is_character_question(user_input, story_text_so_far)
