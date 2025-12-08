@@ -1145,9 +1145,9 @@ elif st.session_state["authentication_status"]:
             </div>
             """, unsafe_allow_html=True)
 
-        # スタート・ストップボタン
-        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-        with col_btn2:
+        # スタート・ストップ・リセットボタン
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+        with col_btn1:
             if not st.session_state.timer_running:
                 if st.button("⏱️ タイマー開始", key="timer_start", use_container_width=True):
                     st.session_state.timer_running = True
@@ -1156,6 +1156,12 @@ elif st.session_state["authentication_status"]:
                 if st.button("⏸️ タイマー停止", key="timer_stop", use_container_width=True):
                     st.session_state.timer_running = False
                     st.rerun()
+
+        with col_btn2:
+            if st.button("🔄 リセット", key="timer_reset", use_container_width=True):
+                st.session_state.timer_running = False
+                st.session_state.timer_seconds = 300
+                st.rerun()
 
         # タイマーが実行中の場合、1秒ごとにカウントダウン
         if st.session_state.timer_running:
