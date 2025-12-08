@@ -1711,17 +1711,6 @@ elif st.session_state["authentication_status"]:
     # 左：小説表示と質問入力
     # -------------------------------------------------
     with left_col:
-        # モード表示
-        mode_descriptions = {
-            0: "デモモード",
-            1: f"モード1（{X-1}章までの情報で質問応答＋関係図生成）",
-            2: "モード2（質問記録のみ、システム応答なし）",
-            3: f"モード3（{Y}章までの情報で質問応答＋関係図生成）",
-            4: f"モード4（{X-1}章までの情報で質問応答のみ、関係図なし）",
-            5: f"モード5（{Y}章までの情報で質問応答＋全体関係図生成）"
-        }
-        st.info(f"🔧 実験設定: {mode_descriptions[EXPERIMENT_MODE]}")
-
         st.markdown("### 📖 小説")
         real_page_index = START_PAGE + st.session_state.ui_page
 
