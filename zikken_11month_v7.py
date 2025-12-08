@@ -1214,7 +1214,12 @@ elif st.session_state["authentication_status"]:
     #          OpenAI クライアント初期化
     # =================================================
     load_dotenv()
+
+    # 環境変数またはStreamlit Secretsから取得
     api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key and "OPENAI_API_KEY" in st.secrets:
+        api_key = st.secrets["OPENAI_API_KEY"]
+
     if not api_key:
         st.error("OPENAI_API_KEY が設定されていません。")
         st.stop()
