@@ -34,7 +34,8 @@ DEMO_MODE = False  # True: デモ（桃太郎、0章から）, False: 本番（�
 # -------------------------------------------------
 # 小説選択
 # -------------------------------------------------
-NOVEL_FILE = "shadow_text.json"  # 使用する小説ファイル: "beast_text.json" または "shadow_text.json"
+NOVEL_FILE = "shadow_text.json"  # 使用する小説ファイル: "beast_text.json", "shadow_text.json", または "kabi_text.json"
+# NOVEL_FILE = "kabi_text.json"  # 田山花袋「蒲団」(79章)
 
 # -------------------------------------------------
 # 公開を開始するページ（0-index）
