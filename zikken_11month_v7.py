@@ -287,7 +287,8 @@ class GoogleSheetsLogger:
 
     def log_qa(self, user_name: str, user_number: str, q_num: int,
                question: str, answer: str, mermaid_code: str = None,
-               svg_path: str = None, drive_uploader=None):
+               svg_path: str = None, drive_uploader=None,
+               timestamp: str = None, chapter: str = None, chapter_title: str = None):
         """質問・回答・図をGoogle Sheetsに記録（レート制限対策付き）"""
         if self.spreadsheet is None:
             return
@@ -332,17 +333,19 @@ class GoogleSheetsLogger:
             worksheet_name = f"QA_Logs_{user_number}"
             worksheet = self.get_or_create_worksheet(
                 worksheet_name,
-                headers=["Timestamp", "User", "Number", "Question#",
+                headers=["Timestamp", "User", "Number", "Question#", "Chapter", "Chapter_Title",
                         "Question", "Answer", "Has_Diagram", "Mermaid_Code",
                         "SVG_Content", "SVG_Drive_Link"]
             )
 
             if worksheet:
                 row_data = [
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    timestamp if timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     user_name,
                     user_number,
                     str(q_num),
+                    chapter if chapter else "N/A",
+                    chapter_title if chapter_title else "N/A",
                     question,
                     answer,
                     "Yes" if mermaid_code else "No",
@@ -1894,11 +1897,20 @@ elif st.session_state["authentication_status"]:
     if user_input:
         st.session_state.question_number += 1
         q_num = st.session_state.question_number
-        logger.info(f"[Q{q_num}] {user_input}")
+
+        # 質問時刻と現在の章番号を取得
+        from datetime import datetime
+        question_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_chapter = pages_all[real_page_index]["section"] if real_page_index < len(pages_all) else "N/A"
+        current_title = pages_all[real_page_index]["title"] if real_page_index < len(pages_all) else "N/A"
+
+        # ログに質問時刻と章番号を記録
+        logger.info(f"[Q{q_num}] 時刻: {question_time} | 現在の章: {current_chapter} ({current_title}) | 質問: {user_input}")
 
         # 質問を履歴に追加
         st.session_state.chat_history.append(
-            {"type": "question", "number": q_num, "content": user_input}
+            {"type": "question", "number": q_num, "content": user_input,
+             "timestamp": question_time, "chapter": current_chapter, "chapter_title": current_title}
         )
 
         # 質問をすぐに表示
@@ -2034,7 +2046,10 @@ elif st.session_state["authentication_status"]:
                     answer=reply,
                     mermaid_code=mermaid_code,
                     svg_path=svg_file,
-                    drive_uploader=drive_uploader
+                    drive_uploader=drive_uploader,
+                    timestamp=question_time,
+                    chapter=current_chapter,
+                    chapter_title=current_title
                 )
 
         except Exception as e:
