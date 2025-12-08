@@ -1057,17 +1057,21 @@ elif st.session_state["authentication_status"]:
                                      placeholder="例: Taro",
                                      help="ファイル名に使用されます")
             experiment_number = st.text_input("実験ナンバー",
-                                              placeholder="例: EXP001",
-                                              help="ファイル名に使用されます")
+                                              placeholder="1~5の数字を入力してください（実験モード指定）",
+                                              help="1~5の数字で実験モードを指定します")
             submitted = st.form_submit_button("次へ")
 
             if submitted:
                 if nickname and experiment_number:
-                    st.session_state.user_name = nickname
-                    st.session_state.user_number = experiment_number
-                    st.session_state.profile_completed = True
-                    st.success("プロファイル設定完了!")
-                    st.rerun()
+                    # 実験ナンバーが1~5の数字かチェック
+                    if experiment_number.isdigit() and 1 <= int(experiment_number) <= 5:
+                        st.session_state.user_name = nickname
+                        st.session_state.user_number = experiment_number
+                        st.session_state.profile_completed = True
+                        st.success("プロファイル設定完了!")
+                        st.rerun()
+                    else:
+                        st.error("実験ナンバーは1~5の数字を入力してください")
                 else:
                     st.error("ニックネームと実験ナンバーの両方を入力してください")
 
