@@ -963,6 +963,7 @@ def init_state(key, default):
 
 init_state("user_name",        "")
 init_state("user_number",      "")
+init_state("session_timestamp", "")  # セッション開始時刻（ユニーク化用）
 init_state("profile_completed", False)  # プロファイル入力完了フラグ
 init_state("summary_read",      False)  # 要約テキスト読了フラグ
 init_state("question_number",  0)
@@ -1062,8 +1063,12 @@ elif st.session_state["authentication_status"]:
                 if nickname and experiment_number:
                     # 実験ナンバーが0~5の数字かチェック
                     if experiment_number.isdigit() and 0 <= int(experiment_number) <= 5:
+                        # セッション開始時刻を生成（ユニークなディレクトリ作成用）
+                        session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
                         st.session_state.user_name = nickname
                         st.session_state.user_number = experiment_number
+                        st.session_state.session_timestamp = session_timestamp
                         st.session_state.profile_completed = True
                         st.success("プロファイル設定完了!")
                         st.rerun()
@@ -1198,11 +1203,11 @@ elif st.session_state["authentication_status"]:
     base_dir = Path("zikken_result")
     base_dir.mkdir(exist_ok=True)
 
-    # ユーザー別ディレクトリを zikken_result 配下に作成
-    user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.user_number}"
+    # ユーザー別ディレクトリを zikken_result 配下に作成（タイムスタンプ付きでユニーク化）
+    user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}"
     user_dir.mkdir(exist_ok=True)
 
-    log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number}_chat_log.txt"
+    log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}_chat_log.txt"
     logger   = _build_logger(log_file)
     logger.info("--- Session started ---")
 
