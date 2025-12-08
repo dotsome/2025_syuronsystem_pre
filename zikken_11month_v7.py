@@ -1083,11 +1083,11 @@ elif st.session_state["authentication_status"]:
         st.title("📚 物語の要約")
         st.markdown("### システムを使用する前に、以下の要約をお読みください")
 
-        # 物語の要約テキスト
-        summary_text = """主人公シドは幼い頃から「陰の実力者」に憧れ、現代日本で格闘技や怪しい修行に明け暮れるが、トラックに轢かれてあっさり死亡し、魔力のある異世界の貴族カゲノー家に転生する。今度こそ陰の実力者になるべく、表では凡庸なモブ少年を演じつつ、裏で魔力と剣技を極限まで鍛え、スライム製ボディスーツや変形剣を開発して盗賊団を虐殺、資金と実験材料を集める。その過程で肉塊となっていた金髪エルフ少女アルファを救い、でっち上げの「ディアボロス教団」と「魔人ディアボロスの呪い」の神話を語って組織シャドウガーデンを設立、アルファやベータ、ガンマら元悪魔憑き達が本気でそれを信じて世界規模の秘密結社に育ててしまう。数年後、シドの姉クレアが教団に攫われる事件が起き、シャドウとなった彼はアルファ達と共に地下施設を急襲、覚醒薬で怪物化したオルバ子爵を圧倒的な技量と奥義「アイ・アム・アトミック」で消し飛ばす。その後シドは王都の魔剣士学園に入り、ツンデレ王女アレクシアに罰ゲーム告白からまさかの交際を申し込まれ、婚約者候補のゼノンとの駆け引きに巻き込まれる。やがてアレクシア誘拐事件が再び発生し、教団の実験施設、化物化した被験者、ゼノンのラウンズ入りの野望などが交錯、アルファやアイリス王女もそれぞれ別戦場で怪物と激突する中、シャドウが放った「アトミック」によってアジトごとゼノンは蒸発する。表向きはアーティファクト暴走として処理され、シドとアレクシアは関係を解消。裏ではガンマがシドの前世知識をもとにミツゴシ商会を巨大企業へ育て、チョコレートや化粧品で資金と影響力を拡大しつつ、教団のチルドレンやシャドウを騙る黒装束の偽者をニューらが拷問して始末する。一方で学術学園では天才研究者シェリーと義父ルスランが教団由来のアーティファクト解析に乗り出し、アイリスとアレクシアは紅の騎士団を軸に教団とシャドウガーデン、どちらが真の敵なのか探り始める。
-
-要約を読み終えたら、下の「次へ」ボタンを押してください。
-        """
+        # デモモードかどうかで表示テキストを切り替え
+        if EXPERIMENT_MODE == 0:
+            summary_text = "これはデモモードです。本番はここに要約する文章を表示します。"
+        else:
+            summary_text = """主人公シドは幼い頃から「陰の実力者」に憧れ、現代日本で格闘技や怪しい修行に明け暮れるが、トラックに轢かれてあっさり死亡し、魔力のある異世界の貴族カゲノー家に転生する。今度こそ陰の実力者になるべく、表では凡庸なモブ少年を演じつつ、裏で魔力と剣技を極限まで鍛え、スライム製ボディスーツや変形剣を開発して盗賊団を虐殺、資金と実験材料を集める。その過程で肉塊となっていた金髪エルフ少女アルファを救い、でっち上げの「ディアボロス教団」と「魔人ディアボロスの呪い」の神話を語って組織シャドウガーデンを設立、アルファやベータ、ガンマら元悪魔憑き達が本気でそれを信じて世界規模の秘密結社に育ててしまう。数年後、シドの姉クレアが教団に攫われる事件が起き、シャドウとなった彼はアルファ達と共に地下施設を急襲、覚醒薬で怪物化したオルバ子爵を圧倒的な技量と奥義「アイ・アム・アトミック」で消し飛ばす。その後シドは王都の魔剣士学園に入り、ツンデレ王女アレクシアに罰ゲーム告白からまさかの交際を申し込まれ、婚約者候補のゼノンとの駆け引きに巻き込まれる。やがてアレクシア誘拐事件が再び発生し、教団の実験施設、化物化した被験者、ゼノンのラウンズ入りの野望などが交錯、アルファやアイリス王女もそれぞれ別戦場で怪物と激突する中、シャドウが放った「アトミック」によってアジトごとゼノンは蒸発する。表向きはアーティファクト暴走として処理され、シドとアレクシアは関係を解消。裏ではガンマがシドの前世知識をもとにミツゴシ商会を巨大企業へ育て、チョコレートや化粧品で資金と影響力を拡大しつつ、教団のチルドレンやシャドウを騙る黒装束の偽者をニューらが拷問して始末する。一方で学術学園では天才研究者シェリーと義父ルスランが教団由来のアーティファクト解析に乗り出し、アイリスとアレクシアは紅の騎士団を軸に教団とシャドウガーデン、どちらが真の敵なのか探り始める。"""
 
         st.markdown(
             f"""
@@ -1102,6 +1102,71 @@ elif st.session_state["authentication_status"]:
             </div>
             """, unsafe_allow_html=True
         )
+
+        st.markdown("---")
+
+        # カウントダウンタイマーの説明とタイマー表示
+        st.markdown("""
+        <div style="
+            padding:20px;border-radius:10px;
+            background-color:#4A5568;
+            color:white;
+            border:1px solid #2D3748;
+            font-size:16px;line-height:1.8;">
+        上記文章を5分間、心の中で音読してください。声に出しても構いません。
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # タイマーのセッション状態初期化
+        if 'timer_running' not in st.session_state:
+            st.session_state.timer_running = False
+        if 'timer_seconds' not in st.session_state:
+            st.session_state.timer_seconds = 300  # 5分 = 300秒
+
+        # タイマー表示
+        minutes = st.session_state.timer_seconds // 60
+        seconds = st.session_state.timer_seconds % 60
+
+        col_timer1, col_timer2, col_timer3 = st.columns([1, 2, 1])
+        with col_timer2:
+            st.markdown(f"""
+            <div style="
+                text-align:center;
+                font-size:48px;
+                font-weight:bold;
+                padding:20px;
+                background-color:#2D3748;
+                color:white;
+                border-radius:10px;
+                border:2px solid #4A5568;">
+            {minutes:02d}:{seconds:02d}
+            </div>
+            """, unsafe_allow_html=True)
+
+        # スタート・ストップボタン
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        with col_btn2:
+            if not st.session_state.timer_running:
+                if st.button("⏱️ タイマー開始", key="timer_start", use_container_width=True):
+                    st.session_state.timer_running = True
+                    st.rerun()
+            else:
+                if st.button("⏸️ タイマー停止", key="timer_stop", use_container_width=True):
+                    st.session_state.timer_running = False
+                    st.rerun()
+
+        # タイマーが実行中の場合、1秒ごとにカウントダウン
+        if st.session_state.timer_running:
+            if st.session_state.timer_seconds > 0:
+                import time
+                time.sleep(1)
+                st.session_state.timer_seconds -= 1
+                st.rerun()
+            else:
+                st.session_state.timer_running = False
+                st.success("✅ 5分間の音読が完了しました！")
 
         st.markdown("---")
 
