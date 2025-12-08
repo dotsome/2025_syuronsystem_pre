@@ -27,20 +27,44 @@ st.set_page_config(page_title="人物関係想起システム",
                    page_icon="📖", layout="wide")
 
 # -------------------------------------------------
-# デモモード設定
+# 実験モード設定
 # -------------------------------------------------
-DEMO_MODE = False  # True: デモ（桃太郎、0章から）, False: 本番（小説、30章から）
+# 実験ナンバーでモードを切り替える
+# 0: デモモード（桃太郎、0章から）
+# 1: モード1「X-1章までの情報を使い関係図や質問応答を行う，読者はX章以降を読む」
+# 2: モード2「質問を送信するだけのモード（システムは応答も何も行わない）」
+# 3: モード3「Y章までの情報を使い関係図や質問応答を行う，読者はX章以降を読む」
+# 4: モード4「X-1章までの情報を使い質問応答を行う（関係図は生成しない），読者はX章以降を読む」
+# 5: モード5「Y章までの情報を使い関係図や質問応答を行う，関係図作成でmainの人物は特定せず全体の人物関係図を出力する，読者はX章以降を読む」
+
+EXPERIMENT_MODE = 1  # 実験モード番号 (0-5)
+
+# 実験設定
+X = 30  # 読者が読み始める章
+Y = 40  # モード3,5で使用する最大章数
+
+# モード別設定
+DEMO_MODE = (EXPERIMENT_MODE == 0)
+START_PAGE = 0 if DEMO_MODE else X
+
+# モード別機能フラグ
+MODE_CONFIG = {
+    0: {"use_graph": True,  "use_qa": True,  "context_range": "all",    "graph_type": "main_character"},  # デモ
+    1: {"use_graph": True,  "use_qa": True,  "context_range": X-1,      "graph_type": "main_character"},  # モード1
+    2: {"use_graph": False, "use_qa": False, "context_range": 0,        "graph_type": None},              # モード2
+    3: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "main_character"},  # モード3
+    4: {"use_graph": False, "use_qa": True,  "context_range": X-1,      "graph_type": None},              # モード4
+    5: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "all_characters"},  # モード5
+}
+
+# 現在のモード設定を取得
+CURRENT_MODE = MODE_CONFIG[EXPERIMENT_MODE]
 
 # -------------------------------------------------
 # 小説選択
 # -------------------------------------------------
 NOVEL_FILE = "shadow_text.json"  # 使用する小説ファイル: "beast_text.json", "shadow_text.json", または "kabi_text.json"
 # NOVEL_FILE = "kabi_text.json"  # 田山花袋「蒲団」(79章)
-
-# -------------------------------------------------
-# 公開を開始するページ（0-index）
-# -------------------------------------------------
-START_PAGE = 0 if DEMO_MODE else 30
 
 # =================================================
 #                🔸  ロガー関連
@@ -1413,7 +1437,8 @@ elif st.session_state["authentication_status"]:
     # =================================================
     @log_io(mask=None)
     def generate_mermaid_file(question: str, story_text: str, q_num: int,
-                             user_dir_path: str, user_name: str, user_number: str) -> str | None:
+                             user_dir_path: str, user_name: str, user_number: str,
+                             graph_type: str = "main_character") -> str | None:
         """
         2段階プロセス：
         1. GPTでざっくりMermaid図を生成
@@ -1427,12 +1452,18 @@ elif st.session_state["authentication_status"]:
             user_dir_path: ユーザーディレクトリパス
             user_name: ユーザー名
             user_number: ユーザー番号
+            graph_type: グラフタイプ ("main_character" or "all_characters")
         """
-        # ──────────────────────────
-        # Step 1: 質問の中心人物を特定（本文使用）
-        # Prompt Caching最適化: 本文を先頭に配置
-        # ──────────────────────────
-        who_prompt = f"""
+        # モード5の場合は中心人物を特定せず全体の人物関係図を生成
+        if graph_type == "all_characters":
+            main_focus = None
+            logger.info(f"[Q{q_num}] グラフタイプ: 全体の人物関係図")
+        else:
+            # ──────────────────────────
+            # Step 1: 質問の中心人物を特定（本文使用）
+            # Prompt Caching最適化: 本文を先頭に配置
+            # ──────────────────────────
+            who_prompt = f"""
 物語の本文:
 {story_text}
 
@@ -1449,28 +1480,67 @@ elif st.session_state["authentication_status"]:
 回答:
 """
 
-        try:
-            res_who = openai_chat(
-                "gpt-5.1",
-                messages=[
-                    {"role": "system", "content": "質問の中心人物を特定します。"},
-                    {"role": "user", "content": who_prompt}
-                ],
-                temperature=0,
-                log_label="中心人物特定"
-            )
-            main_focus = res_who.choices[0].message.content.strip().splitlines()[0]
-        except Exception:
-            logger.exception("[Mermaid] main focus extraction error")
-            main_focus = "主人公"
+            try:
+                res_who = openai_chat(
+                    "gpt-5.1",
+                    messages=[
+                        {"role": "system", "content": "質問の中心人物を特定します。"},
+                        {"role": "user", "content": who_prompt}
+                    ],
+                    temperature=0,
+                    log_label="中心人物特定"
+                )
+                main_focus = res_who.choices[0].message.content.strip().splitlines()[0]
+            except Exception:
+                logger.exception("[Mermaid] main focus extraction error")
+                main_focus = "主人公"
 
-        logger.info(f"[Q{q_num}] Main focus = {main_focus}")
+            logger.info(f"[Q{q_num}] Main focus = {main_focus}")
 
         # ──────────────────────────
         # Step 2: Structured Outputsで直接構造化データを取得
         # ──────────────────────────
         # Prompt Caching最適化: 本文を先頭に配置
-        structured_prompt = f"""
+        if graph_type == "all_characters":
+            # モード5: 全体の人物関係図
+            structured_prompt = f"""
+本文:
+{story_text}
+
+質問: {question}
+
+タスク: 本文を読み、登場する全ての重要な人物の関係図を構造化データで出力してください。
+特定の中心人物を設定せず、物語全体の人物関係を網羅的に表現してください。
+
+【重要な注意事項】
+❌ 絶対にやってはいけないこと:
+- 「不明」「質問者」「主体」「客体」などの抽象的な人物名は使用禁止
+- 実在しない人物を含めない
+
+✅ 正しい例:
+- center_person: "ミナ"  （またはnull）
+- relationships: [
+    {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
+    {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
+  ]
+
+要件:
+1. 実在する登場人物のみ（具体的な人物名）
+2. 主要な関係のみ（全体図の場合は10-20人程度、中心人物がある場合は5-10人程度）
+3. 関係タイプ:
+   - directed: 一方向（上司→部下など）
+   - bidirectional: 双方向（友人、仲間など）
+   - dotted: 補助的な関係
+4. labelは簡潔に（5文字以内推奨）
+5. 同じ2人の間の関係は最大2本まで
+
+**絶対に守ること:**
+- 「不明」「主体」「客体」などの抽象的な名前は絶対に使用しない
+- 必ず実在する登場人物のみを使用する
+"""
+        else:
+            # モード1,3,4: 中心人物を指定した関係図
+            structured_prompt = f"""
 本文:
 {story_text}
 
@@ -1637,6 +1707,17 @@ elif st.session_state["authentication_status"]:
     # 左：小説表示と質問入力
     # -------------------------------------------------
     with left_col:
+        # モード表示
+        mode_descriptions = {
+            0: "デモモード",
+            1: f"モード1（{X-1}章までの情報で質問応答＋関係図生成）",
+            2: "モード2（質問記録のみ、システム応答なし）",
+            3: f"モード3（{Y}章までの情報で質問応答＋関係図生成）",
+            4: f"モード4（{X-1}章までの情報で質問応答のみ、関係図なし）",
+            5: f"モード5（{Y}章までの情報で質問応答＋全体関係図生成）"
+        }
+        st.info(f"🔧 実験設定: {mode_descriptions[EXPERIMENT_MODE]}")
+
         st.markdown("### 📖 小説")
         real_page_index = START_PAGE + st.session_state.ui_page
 
@@ -1677,7 +1758,12 @@ elif st.session_state["authentication_status"]:
             key="question_input",
             placeholder="例: 主人公の名前は何ですか？"
         )
-        send_button = st.button("📤 送信", type="primary", width="stretch")
+
+        # モード2の場合は送信ボタンを表示するが、システムは応答しない
+        if EXPERIMENT_MODE == 2:
+            send_button = st.button("📤 送信（記録のみ）", type="primary", use_container_width=True)
+        else:
+            send_button = st.button("📤 送信", type="primary", use_container_width=True)
 
         # ボタンが押されたときに user_input に値を設定
         user_input = None
@@ -1751,7 +1837,20 @@ elif st.session_state["authentication_status"]:
             f'<b>質問:</b> {user_input}</div>',
             unsafe_allow_html=True)
 
-        story_text_so_far = "\n\n".join(pages_all[:real_page_index + 1])
+        # モード2の場合は質問を記録するのみで処理を終了
+        if EXPERIMENT_MODE == 2:
+            st.info("✅ 質問を記録しました（このモードではシステムは応答しません）")
+            st.rerun()
+
+        # コンテキスト範囲を決定
+        if CURRENT_MODE["context_range"] == "all":
+            # デモモードなど、全てのページを使用
+            context_end_index = real_page_index + 1
+        else:
+            # 指定された章数までを使用
+            context_end_index = min(CURRENT_MODE["context_range"], len(pages_all))
+
+        story_text_so_far = "\n\n".join(pages_all[:context_end_index])
 
         # 登場人物質問かどうか判定（本文を使用）
         is_char_question = is_character_question(user_input, story_text_so_far)
@@ -1782,7 +1881,10 @@ elif st.session_state["authentication_status"]:
         reply = None
 
         try:
-            if is_char_question:
+            # グラフ生成の有無を判定（モード設定とキャラクター質問の両方を考慮）
+            should_generate_graph = CURRENT_MODE["use_graph"] and is_char_question
+
+            if should_generate_graph:
                 # 図の生成と回答生成を並行実行
                 status_placeholder = st.empty()
                 status_placeholder.info("💭 登場人物の関係図と回答を生成中...")
@@ -1800,7 +1902,8 @@ elif st.session_state["authentication_status"]:
                         q_num,
                         str(user_dir),
                         user_name,
-                        user_number
+                        user_number,
+                        CURRENT_MODE["graph_type"]  # モード設定からグラフタイプを取得
                     )
                     answer_future = executor.submit(
                         openai_chat,
@@ -1830,7 +1933,7 @@ elif st.session_state["authentication_status"]:
                     if mmd_path.exists():
                         mermaid_code = mmd_path.read_text(encoding="utf-8")
             else:
-                # 登場人物質問でない場合は回答のみ生成
+                # グラフ生成不要の場合は回答のみ生成
                 status_placeholder = st.empty()
                 status_placeholder.info("💭 回答を生成中...")
 
