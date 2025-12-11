@@ -1968,6 +1968,9 @@ elif st.session_state["authentication_status"]:
             for sec in pages_all[:context_end_index]
         ])
 
+        # デバッグ：コンテキスト範囲をログに記録
+        logger.info(f"[Q{q_num}] コンテキスト範囲: 1~{context_end_index}章 (設定値={CURRENT_MODE['context_range']}, 総章数={len(pages_all)}, 文字数={len(story_text_so_far):,})")
+
         # 登場人物質問かどうか判定（本文を使用）
         is_char_question = is_character_question(user_input, story_text_so_far)
 
