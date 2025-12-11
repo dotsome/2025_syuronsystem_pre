@@ -133,6 +133,7 @@ class GoogleDriveUploader:
                 '.png': 'image/png',
                 '.jpg': 'image/jpeg',
                 '.json': 'application/json',
+                '.pdf': 'application/pdf',
             }
             mime_type = mime_types.get(file_path.suffix, 'application/octet-stream')
 
@@ -316,14 +317,38 @@ class GoogleSheetsLogger:
                     svg_content = Path(svg_path).read_text(encoding='utf-8')
                     print(f"🔍 [DEBUG] SVG読み込み成功: {len(svg_content)} 文字")
 
-                    # Google Driveにアップロード
+                    # SVGをPDFに変換してGoogle Driveにアップロード
                     if drive_uploader:
-                        print(f"🔄 [Q{q_num}] Google Driveアップロード試行: {svg_path}")
-                        svg_drive_link = drive_uploader.upload_file(svg_path) or ""
-                        if svg_drive_link:
-                            print(f"✅ [Q{q_num}] アップロード成功: {svg_drive_link}")
-                        else:
-                            print(f"⚠️ [Q{q_num}] アップロード失敗: リンクが返されませんでした")
+                        try:
+                            import cairosvg
+
+                            # PDFファイルパスを生成
+                            svg_path_obj = Path(svg_path)
+                            pdf_path = svg_path_obj.with_suffix('.pdf')
+
+                            print(f"🔄 [Q{q_num}] SVG→PDF変換中: {svg_path} → {pdf_path}")
+
+                            # SVGをPDFに変換
+                            cairosvg.svg2pdf(url=str(svg_path), write_to=str(pdf_path))
+
+                            print(f"✅ [Q{q_num}] PDF変換完了: {pdf_path.stat().st_size} bytes")
+
+                            # PDFファイルをGoogle Driveにアップロード
+                            print(f"🔄 [Q{q_num}] Google Driveアップロード試行: {pdf_path}")
+                            svg_drive_link = drive_uploader.upload_file(str(pdf_path)) or ""
+
+                            if svg_drive_link:
+                                print(f"✅ [Q{q_num}] アップロード成功: {svg_drive_link}")
+                            else:
+                                print(f"⚠️ [Q{q_num}] アップロード失敗: リンクが返されませんでした")
+
+                        except ImportError:
+                            print(f"⚠️ [Q{q_num}] cairosvgがインストールされていません。SVGファイルのままアップロードを試みます。")
+                            svg_drive_link = drive_uploader.upload_file(svg_path) or ""
+                        except Exception as e:
+                            print(f"❌ [Q{q_num}] PDF変換/アップロードエラー: {e}")
+                            import traceback
+                            traceback.print_exc()
                     else:
                         print(f"⚠️ [Q{q_num}] drive_uploaderがNoneです")
 
