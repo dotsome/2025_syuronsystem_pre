@@ -93,21 +93,23 @@ class GoogleDriveUploader:
                 # フォルダIDが設定されている場合は保存（サービスアカウントでは必須）
                 if "google_drive_folder_id" in st.secrets:
                     self.folder_id = st.secrets["google_drive_folder_id"]
-                    print(f"✅ Google Drive API接続成功 (folder_id: {self.folder_id})")
+                    print(f"✅ [INIT] Google Drive API接続成功 (folder_id: {self.folder_id})")
                 else:
-                    print(f"⚠️ Google Drive API接続成功したが、google_drive_folder_idが未設定です")
+                    print(f"⚠️ [INIT] Google Drive API接続成功したが、google_drive_folder_idが未設定です")
                     print(f"   サービスアカウントではフォルダIDが必須です。アップロードは失敗します。")
             else:
-                print("⚠️ gcp_service_account がsecretsに見つかりません")
+                print("⚠️ [INIT] gcp_service_account がsecretsに見つかりません")
         except Exception as e:
-            print(f"❌ Google Drive API初期化エラー: {e}")
+            print(f"❌ [INIT] Google Drive API初期化エラー: {e}")
             import traceback
             traceback.print_exc()
 
     def upload_file(self, file_path: str, folder_id: str = None, max_retries: int = 3) -> str | None:
         """ファイルをGoogle Driveにアップロード（リトライ機能付き）"""
+        print(f"🔍 [UPLOAD] upload_file()呼び出し: {file_path}")
+
         if self.service is None:
-            print(f"⚠️ Google Drive service が初期化されていません")
+            print(f"⚠️ [UPLOAD] Google Drive service が初期化されていません")
             return None
 
         try:
@@ -117,8 +119,10 @@ class GoogleDriveUploader:
 
             file_path = Path(file_path)
             if not file_path.exists():
-                print(f"ファイルが存在しません: {file_path}")
+                print(f"⚠️ [UPLOAD] ファイルが存在しません: {file_path}")
                 return None
+
+            print(f"✅ [UPLOAD] ファイル確認OK: {file_path.name} ({file_path.stat().st_size} bytes)")
 
             # MIMEタイプの判定
             mime_types = {
@@ -137,7 +141,7 @@ class GoogleDriveUploader:
 
             # サービスアカウントはフォルダIDが必須
             if not target_folder:
-                print(f"⚠️ google_drive_folder_id が設定されていません。サービスアカウントではフォルダIDが必須です。")
+                print(f"⚠️ [UPLOAD] google_drive_folder_id が設定されていません。サービスアカウントではフォルダIDが必須です。")
                 return None
 
             # ファイルメタデータ（parentsは必須）
@@ -145,7 +149,7 @@ class GoogleDriveUploader:
                 'name': file_path.name,
                 'parents': [target_folder]
             }
-            print(f"📁 アップロード先フォルダID: {target_folder}")
+            print(f"📁 [UPLOAD] アップロード先フォルダID: {target_folder}")
 
             # ファイルサイズを確認
             file_size = file_path.stat().st_size
@@ -203,11 +207,12 @@ class GoogleDriveUploader:
             # 画像直接表示用のURL（Google Drive direct link）
             direct_link = f"https://drive.google.com/uc?id={file_id}"
 
-            print(f"✅ Google Driveにアップロード完了: {file_path.name} (ID: {file_id})")
+            print(f"✅ [UPLOAD] Google Driveにアップロード完了: {file_path.name} (ID: {file_id})")
+            print(f"🔗 [UPLOAD] URL: {direct_link}")
             return direct_link
 
         except Exception as e:
-            print(f"❌ Google Driveアップロードエラー: {e}")
+            print(f"❌ [UPLOAD] Google Driveアップロードエラー: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -290,7 +295,10 @@ class GoogleSheetsLogger:
                svg_path: str = None, drive_uploader=None,
                timestamp: str = None, chapter: str = None, chapter_title: str = None):
         """質問・回答・図をGoogle Sheetsに記録（レート制限対策付き）"""
+        print(f"🔍 [DEBUG] log_qa() 呼び出し: Q{q_num}, svg_path={svg_path}, drive_uploader={'あり' if drive_uploader else 'なし'}")
+
         if self.spreadsheet is None:
+            print(f"⚠️ [DEBUG] spreadsheet is None - log_qa()をスキップ")
             return
 
         try:
@@ -306,28 +314,29 @@ class GoogleSheetsLogger:
             if svg_path and Path(svg_path).exists():
                 try:
                     svg_content = Path(svg_path).read_text(encoding='utf-8')
+                    print(f"🔍 [DEBUG] SVG読み込み成功: {len(svg_content)} 文字")
 
                     # Google Driveにアップロード
                     if drive_uploader:
-                        print(f"🔄 Google Driveアップロード試行: {svg_path}")
+                        print(f"🔄 [Q{q_num}] Google Driveアップロード試行: {svg_path}")
                         svg_drive_link = drive_uploader.upload_file(svg_path) or ""
                         if svg_drive_link:
-                            print(f"✅ アップロード成功: {svg_drive_link}")
+                            print(f"✅ [Q{q_num}] アップロード成功: {svg_drive_link}")
                         else:
-                            print(f"⚠️ アップロード失敗: リンクが返されませんでした")
+                            print(f"⚠️ [Q{q_num}] アップロード失敗: リンクが返されませんでした")
                     else:
-                        print(f"⚠️ drive_uploaderがNoneです")
+                        print(f"⚠️ [Q{q_num}] drive_uploaderがNoneです")
 
                 except Exception as e:
-                    print(f"❌ SVG読み込み/アップロードエラー: {e}")
+                    print(f"❌ [Q{q_num}] SVG読み込み/アップロードエラー: {e}")
                     import traceback
                     traceback.print_exc()
                     svg_content = f"[SVG読み込み失敗: {svg_path}]"
             else:
                 if not svg_path:
-                    print(f"⚠️ svg_pathがNoneです")
+                    print(f"⚠️ [Q{q_num}] svg_pathがNoneです")
                 elif not Path(svg_path).exists():
-                    print(f"⚠️ SVGファイルが存在しません: {svg_path}")
+                    print(f"⚠️ [Q{q_num}] SVGファイルが存在しません: {svg_path}")
 
             # QA専用ワークシートを取得/作成（ユーザーごとに分ける）
             worksheet_name = f"QA_Logs_{user_number}"
@@ -1230,11 +1239,17 @@ elif st.session_state["authentication_status"]:
     sheets_qa_logger = None
     if "google_spreadsheet_key" in st.secrets:
         sheets_qa_logger = GoogleSheetsLogger(st.secrets["google_spreadsheet_key"])
+        logger.info("✅ Google Sheets Logger 初期化完了")
+    else:
+        logger.warning("⚠️ google_spreadsheet_key が設定されていません")
 
     # Google Driveアップローダーの初期化（Streamlit Cloudで有効）
     drive_uploader = None
     if "gcp_service_account" in st.secrets:
         drive_uploader = GoogleDriveUploader()
+        logger.info(f"✅ Google Drive Uploader 初期化完了 (folder_id: {drive_uploader.folder_id if drive_uploader.folder_id else 'None'})")
+    else:
+        logger.warning("⚠️ gcp_service_account が設定されていません")
 
     # =================================================
     #          OpenAI クライアント初期化
@@ -2072,7 +2087,9 @@ elif st.session_state["authentication_status"]:
             logger.info(f"[A{q_num}] 回答生成完了")
 
             # Google SheetsにQAログを記録
+            logger.info(f"[Q{q_num}] log_qa()呼び出し準備: sheets_qa_logger={'あり' if sheets_qa_logger else 'なし'}, svg_file={svg_file}, drive_uploader={'あり' if drive_uploader else 'なし'}")
             if sheets_qa_logger:
+                logger.info(f"[Q{q_num}] sheets_qa_logger.log_qa()を呼び出します")
                 sheets_qa_logger.log_qa(
                     user_name=st.session_state.user_name,
                     user_number=st.session_state.user_number,
@@ -2086,6 +2103,9 @@ elif st.session_state["authentication_status"]:
                     chapter=current_chapter,
                     chapter_title=current_title
                 )
+                logger.info(f"[Q{q_num}] sheets_qa_logger.log_qa()呼び出し完了")
+            else:
+                logger.warning(f"[Q{q_num}] sheets_qa_loggerがNoneのため、QAログを記録できません")
 
         except Exception as e:
             if 'status_placeholder' in locals():
