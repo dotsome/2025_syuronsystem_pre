@@ -1196,6 +1196,18 @@ elif st.session_state["authentication_status"]:
     DEMO_MODE = (EXPERIMENT_MODE == 0)
     START_PAGE = 0 if DEMO_MODE else X
 
+    # デバッグ用：実験モード情報をサイドバーに表示（開発時のみ）
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("### 🔧 実験モード情報")
+        st.markdown(f"**実験ナンバー:** {EXPERIMENT_MODE}")
+        st.markdown(f"**グラフ生成:** {'✅' if CURRENT_MODE['use_graph'] else '❌'}")
+        st.markdown(f"**Q&A実行:** {'✅' if CURRENT_MODE['use_qa'] else '❌'}")
+        st.markdown(f"**コンテキスト範囲:** {CURRENT_MODE['context_range']}")
+        st.markdown(f"**グラフタイプ:** {CURRENT_MODE['graph_type']}")
+        st.markdown(f"**開始ページ:** {START_PAGE}")
+        st.markdown("---")
+
     # =================================================
     #          🔸 ユーザー別ディレクトリ & ログ
     # =================================================
@@ -1210,6 +1222,9 @@ elif st.session_state["authentication_status"]:
     log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}_chat_log.txt"
     logger   = _build_logger(log_file)
     logger.info("--- Session started ---")
+    logger.info(f"実験モード: {EXPERIMENT_MODE}")
+    logger.info(f"モード設定: use_graph={CURRENT_MODE['use_graph']}, use_qa={CURRENT_MODE['use_qa']}, context_range={CURRENT_MODE['context_range']}, graph_type={CURRENT_MODE['graph_type']}")
+    logger.info(f"開始ページ: {START_PAGE} (X={X}, Y={Y})")
 
     # Google Sheets QAロガーの初期化（Streamlit Cloudで有効）
     sheets_qa_logger = None
