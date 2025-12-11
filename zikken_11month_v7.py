@@ -1806,6 +1806,10 @@ elif st.session_state["authentication_status"]:
         real_page_index = START_PAGE + st.session_state.ui_page
 
         st.session_state.page = real_page_index
+
+        # pages_uiは表示用のフォーマット済みテキスト
+        current_page_text = pages_ui[st.session_state.ui_page]
+
         st.markdown(
             f"""
             <div style="
@@ -1815,7 +1819,7 @@ elif st.session_state["authentication_status"]:
                 border:1px solid var(--secondary-background-color);
                 font-size:18px;line-height:1.8;white-space:pre-wrap;
                 min-height:500px;max-height:600px;overflow-y:auto;">
-            {pages_all[real_page_index]}
+            {current_page_text}
             </div>
             """, unsafe_allow_html=True
         )
