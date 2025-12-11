@@ -35,11 +35,11 @@ st.set_page_config(page_title="人物関係想起システム",
 # 2: モード2「質問を送信するだけのモード（システムは応答も何も行わない）」
 # 3: モード3「Y章までの情報を使い関係図や質問応答を行う，読者はX章以降を読む」
 # 4: モード4「X-1章までの情報を使い質問応答を行う（関係図は生成しない），読者はX章以降を読む」
-# 5: モード5「Y章までの情報を使い関係図や質問応答を行う，関係図作成でmainの人物は特定せず全体の人物関係図を出力する，読者はX章以降を読む」
+# 5: モード5「X-1章までの情報を使い関係図や質問応答を行う，関係図作成でmainの人物は特定せず全体の人物関係図を出力する，読者はX章以降を読む」
 
 # 実験設定
 X = 30  # 読者が読み始める章
-Y = 40  # モード3,5で使用する最大章数
+Y = 40  # モード3で使用する最大章数
 
 # モード別機能フラグを返す関数
 def get_mode_config(experiment_mode: int):
@@ -50,7 +50,7 @@ def get_mode_config(experiment_mode: int):
         2: {"use_graph": False, "use_qa": False, "context_range": 0,        "graph_type": None},              # モード2
         3: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "main_character"},  # モード3
         4: {"use_graph": False, "use_qa": True,  "context_range": X-1,      "graph_type": None},              # モード4
-        5: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "all_characters"},  # モード5
+        5: {"use_graph": True,  "use_qa": True,  "context_range": X-1,      "graph_type": "all_characters"},  # モード5
     }
     return MODE_CONFIG.get(experiment_mode, MODE_CONFIG[1])  # デフォルトはモード1
 
