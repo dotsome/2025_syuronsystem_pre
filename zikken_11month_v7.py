@@ -722,7 +722,7 @@ class Relationship(BaseModel):
 
 class CharacterGraph(BaseModel):
     """登場人物関係図の構造化データ"""
-    center_person: str  # 中心人物
+    center_persons: List[str]  # 中心人物（複数可）
     relationships: List[Relationship]  # 関係のリスト
 
 # 無効なノード名のセット
@@ -861,17 +861,24 @@ def build_mermaid_from_structured(graph: CharacterGraph) -> str:
         else:
             lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
 
-    # 中心人物ハイライト（fuzzy matching）
-    if graph.center_person:
+    # 中心人物ハイライト（複数対応、fuzzy matching）
+    if graph.center_persons:
         lines.append('')  # スタイル定義前に空行
-        if graph.center_person in node_ids:
-            lines.append(f'    style {node_ids[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-        else:
-            # 部分一致で検索
-            for node_name in node_ids:
-                if graph.center_person in node_name or node_name in graph.center_person:
-                    lines.append(f'    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-                    break  # 最初にマッチしたノードのみをハイライト
+        highlighted_nodes = set()  # 重複を避ける
+
+        for center_person in graph.center_persons:
+            if center_person in node_ids:
+                if node_ids[center_person] not in highlighted_nodes:
+                    lines.append(f'    style {node_ids[center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    highlighted_nodes.add(node_ids[center_person])
+            else:
+                # 部分一致で検索
+                for node_name in node_ids:
+                    if center_person in node_name or node_name in center_person:
+                        if node_ids[node_name] not in highlighted_nodes:
+                            lines.append(f'    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                            highlighted_nodes.add(node_ids[node_name])
+                        break  # 最初にマッチしたノードのみをハイライト
 
     # Noneを除外し、末尾の空行を削除
     filtered_lines = [line for line in lines if line is not None]
@@ -964,16 +971,23 @@ def build_mermaid_without_subgraph(graph: CharacterGraph) -> str:
         else:
             lines.append(f'    {src_id} {edge["symbol"]} {dst_id}')
 
-    # 中心人物ハイライト
-    if graph.center_person:
+    # 中心人物ハイライト（複数対応）
+    if graph.center_persons:
         lines.append('')
-        if graph.center_person in node_ids:
-            lines.append(f'    style {node_ids[graph.center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-        else:
-            for node_name in node_ids:
-                if graph.center_person in node_name or node_name in graph.center_person:
-                    lines.append(f'    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
-                    break
+        highlighted_nodes = set()
+
+        for center_person in graph.center_persons:
+            if center_person in node_ids:
+                if node_ids[center_person] not in highlighted_nodes:
+                    lines.append(f'    style {node_ids[center_person]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                    highlighted_nodes.add(node_ids[center_person])
+            else:
+                for node_name in node_ids:
+                    if center_person in node_name or node_name in center_person:
+                        if node_ids[node_name] not in highlighted_nodes:
+                            lines.append(f'    style {node_ids[node_name]} fill:#FFD700,stroke:#FF8C00,stroke-width:4px')
+                            highlighted_nodes.add(node_ids[node_name])
+                        break
 
     # 末尾の空行を削除
     filtered_lines = [line for line in lines if line is not None]
@@ -1398,14 +1412,14 @@ elif st.session_state["authentication_status"]:
 - 実在しない人物を含めない
 
 ✅ 正しい例:
-- center_person: "ミナ"
+- center_persons: ["ミナ"]  （複数の場合: ["ミナ", "アリオス"]）
 - relationships: [
     {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
     {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
   ]
 
 要件:
-1. {warmup_main_focus}を必ず含める
+1. {warmup_main_focus}を必ず含める（複数いる場合は全員）
 2. 実在する登場人物のみ（具体的な人物名）
 3. 主要な関係のみ（5-10人程度）
 4. 関係タイプ:
@@ -1418,7 +1432,8 @@ elif st.session_state["authentication_status"]:
 **絶対に守ること:**
 - 「不明」「主体」「客体」などの抽象的な名前は絶対に使用しない
 - 必ず実在する登場人物のみを使用する
-- {warmup_main_focus}自身を必ず含める
+- {warmup_main_focus}自身を必ず含める（複数いる場合は全員）
+- center_personsは必ずリスト形式で出力（単一の場合も["name"]の形式）
 """
 
                     # Structured Outputs APIでキャッシュ作成
@@ -1614,11 +1629,22 @@ elif st.session_state["authentication_status"]:
 
 質問: {question}
 
-この質問の中心となる登場人物の名前を1つだけ答えてください。
+この質問の中心となる登場人物の名前を答えてください。
+
+【重要】質問形式に応じた判定:
+- 「AとBの関係性」「AとBについて」などの場合 → AとBの両方を答える
+- 「Aの〜について」などの場合 → Aのみを答える
+- 複数人の関係や比較を問う質問 → 該当する全員を答える
 
 要件:
 - 本文に登場する正確な人物名で回答
-- 人物名のみを1行で出力（説明不要）
+- 複数いる場合は1行に1人ずつ記載
+- 人物名のみを出力（説明不要）
+
+回答例:
+質問が「花子と太郎の関係性について教えて」なら:
+花子
+太郎
 
 回答:
 """
@@ -1633,7 +1659,9 @@ elif st.session_state["authentication_status"]:
                     temperature=0,
                     log_label="中心人物特定"
                 )
-                main_focus = res_who.choices[0].message.content.strip().splitlines()[0]
+                # 複数行で返ってくる可能性があるため、全ての非空行を取得
+                main_focus_list = [line.strip() for line in res_who.choices[0].message.content.strip().splitlines() if line.strip()]
+                main_focus = ", ".join(main_focus_list) if main_focus_list else "主人公"
             except Exception:
                 logger.exception("[Mermaid] main focus extraction error")
                 main_focus = "主人公"
@@ -1661,7 +1689,7 @@ elif st.session_state["authentication_status"]:
 - 実在しない人物を含めない
 
 ✅ 正しい例:
-- center_person: "ミナ"  （またはnull）
+- center_persons: ["ミナ"]  （複数の場合: ["ミナ", "アリオス"]、中心人物なしの場合: []）
 - relationships: [
     {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
     {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
@@ -1691,6 +1719,7 @@ elif st.session_state["authentication_status"]:
 中心人物: {main_focus}
 
 タスク: 本文を読み、{main_focus}を中心とした登場人物の関係図を構造化データで出力してください。
+複数の中心人物がいる場合は、center_personsにリストとして全員を含めてください。
 
 【重要な注意事項】
 ❌ 絶対にやってはいけないこと:
@@ -1698,14 +1727,14 @@ elif st.session_state["authentication_status"]:
 - 実在しない人物を含めない
 
 ✅ 正しい例:
-- center_person: "ミナ"
+- center_persons: ["ミナ"]  （複数の場合: ["ミナ", "アリオス"]）
 - relationships: [
     {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
     {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
   ]
 
 要件:
-1. {main_focus}を必ず含める
+1. {main_focus}を必ず含める（複数いる場合は全員）
 2. 実在する登場人物のみ（具体的な人物名）
 3. 主要な関係のみ（5-10人程度）
 4. 関係タイプ:
@@ -1718,7 +1747,8 @@ elif st.session_state["authentication_status"]:
 **絶対に守ること:**
 - 「不明」「主体」「客体」などの抽象的な名前は絶対に使用しない
 - 必ず実在する登場人物のみを使用する
-- {main_focus}自身を必ず含める
+- {main_focus}自身を必ず含める（複数いる場合は全員）
+- center_personsは必ずリスト形式で出力（単一の場合も["name"]の形式）
 """
 
         try:
