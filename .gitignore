@@ -3,3 +3,5 @@ password.csv
 config.yaml
 zikken_result/
 streamlit_auth.py
+credentials.json
+token.json
