@@ -76,29 +76,47 @@ class GoogleDriveUploader:
         return cls._instance
 
     def _init_service(self):
-        """Google Drive APIサービスを初期化"""
+        """Google Drive APIサービスを初期化（OAuth または サービスアカウント）"""
         try:
-            if "gcp_service_account" in st.secrets:
-                from googleapiclient.discovery import build
-                from googleapiclient.http import MediaFileUpload
+            from googleapiclient.discovery import build
+            from googleapiclient.http import MediaFileUpload
 
+            # OAuth認証を優先（個人ドライブへのアップロードが可能）
+            if "google_drive_oauth" in st.secrets:
+                from google.oauth2.credentials import Credentials
+
+                oauth_config = dict(st.secrets["google_drive_oauth"])
+                creds = Credentials(
+                    token=oauth_config.get("token"),
+                    refresh_token=oauth_config.get("refresh_token"),
+                    token_uri=oauth_config.get("token_uri"),
+                    client_id=oauth_config.get("client_id"),
+                    client_secret=oauth_config.get("client_secret"),
+                    scopes=oauth_config.get("scopes", ["https://www.googleapis.com/auth/drive.file"])
+                )
+                self.service = build('drive', 'v3', credentials=creds)
+                self.folder_id = oauth_config.get("folder_id", None)
+                print(f"✅ [INIT] Google Drive API接続成功 (OAuth認証, folder_id: {self.folder_id or 'ルート'})")
+
+            # サービスアカウント認証（共有ドライブのみ）
+            elif "gcp_service_account" in st.secrets:
                 creds_dict = dict(st.secrets["gcp_service_account"])
                 scope = [
                     'https://www.googleapis.com/auth/drive.file',
-                    'https://www.googleapis.com/auth/drive'  # permissions用に追加
+                    'https://www.googleapis.com/auth/drive'
                 ]
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                 self.service = build('drive', 'v3', credentials=creds)
 
-                # フォルダIDが設定されている場合は保存（サービスアカウントでは必須）
                 if "google_drive_folder_id" in st.secrets:
                     self.folder_id = st.secrets["google_drive_folder_id"]
-                    print(f"✅ [INIT] Google Drive API接続成功 (folder_id: {self.folder_id})")
+                    print(f"✅ [INIT] Google Drive API接続成功 (サービスアカウント, folder_id: {self.folder_id})")
                 else:
-                    print(f"⚠️ [INIT] Google Drive API接続成功したが、google_drive_folder_idが未設定です")
-                    print(f"   サービスアカウントではフォルダIDが必須です。アップロードは失敗します。")
+                    print(f"⚠️ [INIT] サービスアカウント認証成功だが、google_drive_folder_idが未設定")
+                    print(f"   サービスアカウントは共有ドライブのみアップロード可能です")
             else:
-                print("⚠️ [INIT] gcp_service_account がsecretsに見つかりません")
+                print("⚠️ [INIT] google_drive_oauth も gcp_service_account も見つかりません")
+
         except Exception as e:
             print(f"❌ [INIT] Google Drive API初期化エラー: {e}")
             import traceback
@@ -140,17 +158,15 @@ class GoogleDriveUploader:
             # アップロード先フォルダID（優先順位: 引数 > インスタンス変数）
             target_folder = folder_id or self.folder_id
 
-            # サービスアカウントはフォルダIDが必須
-            if not target_folder:
-                print(f"⚠️ [UPLOAD] google_drive_folder_id が設定されていません。サービスアカウントではフォルダIDが必須です。")
-                return None
+            # ファイルメタデータ
+            file_metadata = {'name': file_path.name}
 
-            # ファイルメタデータ（parentsは必須）
-            file_metadata = {
-                'name': file_path.name,
-                'parents': [target_folder]
-            }
-            print(f"📁 [UPLOAD] アップロード先フォルダID: {target_folder}")
+            # フォルダIDがある場合のみparentsを設定
+            if target_folder:
+                file_metadata['parents'] = [target_folder]
+                print(f"📁 [UPLOAD] アップロード先フォルダID: {target_folder}")
+            else:
+                print(f"📁 [UPLOAD] アップロード先: マイドライブのルート")
 
             # ファイルサイズを確認
             file_size = file_path.stat().st_size
