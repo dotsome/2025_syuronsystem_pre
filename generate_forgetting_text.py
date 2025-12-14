@@ -129,8 +129,8 @@ def main():
     for novel_name, novel_file in novels.items():
         print(f"📖 {novel_name.upper()} の処理を開始")
 
-        # 小説本文を読み込み（30章まで）
-        novel_text = load_novel(novel_file, max_chapters=30)
+        # 小説本文を読み込み（29章まで）
+        novel_text = load_novel(novel_file, max_chapters=29)
         print(f"  本文読み込み完了: {len(novel_text):,}文字")
 
         for char_limit in char_limits:
