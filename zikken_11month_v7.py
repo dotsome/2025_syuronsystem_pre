@@ -1038,6 +1038,7 @@ init_state("profile_completed", False)  # プロファイル入力完了フラ�
 init_state("novels_selection_completed", False)  # 小説選択完了フラグ
 init_state("selected_novels",  [])  # 選択された小説のキーリスト（例: ["shadow", "novel2"]）
 init_state("current_novel_index", 0)  # 現在進行中の小説インデックス（0または1）
+init_state("log_downloaded",   False)  # ログダウンロード完了フラグ
 init_state("summary_read",      False)  # 要約テキスト読了フラグ
 init_state("question_number",  0)
 init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE）
@@ -2059,25 +2060,33 @@ elif st.session_state["authentication_status"]:
                 mime="text/plain",
                 use_container_width=True
             )
+
+            # 2作品目への遷移処理（1作品目完了後のみ表示）
+            if st.session_state.novels_selection_completed and st.session_state.selected_novels:
+                if st.session_state.current_novel_index == 0 and len(st.session_state.selected_novels) == 2:
+                    # ログダウンロード確認チェックボックス
+                    log_downloaded = st.checkbox(
+                        "ログをダウンロードしました",
+                        key="log_download_confirm"
+                    )
+
+                    if log_downloaded:
+                        st.markdown("---")
+                        st.success("✅ 1作品目の実験が完了しました。2作品目に進んでください。")
+                        if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
+                            # 2作品目に進む
+                            st.session_state.current_novel_index = 1
+                            st.session_state.log_downloaded = False  # リセット
+                            st.session_state.summary_read = False
+                            st.session_state.question_number = 0
+                            st.session_state.ui_page = 0
+                            st.session_state.chat_history = []
+                            st.rerun()
+                elif st.session_state.current_novel_index == 1:
+                    st.markdown("---")
+                    st.success("🎉 2作品すべての実験が完了しました！お疲れ様でした。")
         else:
             st.info("ログファイルがまだ作成されていません")
-
-        # 2作品目への遷移ボタン（1作品目完了後のみ表示）
-        if st.session_state.novels_selection_completed and st.session_state.selected_novels:
-            if st.session_state.current_novel_index == 0 and len(st.session_state.selected_novels) == 2:
-                st.markdown("---")
-                st.info("✅ 1作品目の実験が完了しました。ログをダウンロードしてから、2作品目に進んでください。")
-                if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
-                    # 2作品目に進む
-                    st.session_state.current_novel_index = 1
-                    st.session_state.summary_read = False
-                    st.session_state.question_number = 0
-                    st.session_state.ui_page = 0
-                    st.session_state.chat_history = []
-                    st.rerun()
-            elif st.session_state.current_novel_index == 1:
-                st.markdown("---")
-                st.success("🎉 2作品すべての実験が完了しました！お疲れ様でした。")
 
     # =================================================
     #               ユーザー入力処理
