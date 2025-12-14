@@ -1042,6 +1042,7 @@ init_state("log_downloaded",   False)  # ログダウンロード完了フラグ
 init_state("summary_read",      False)  # 要約テキスト読了フラグ
 init_state("question_number",  0)
 init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE）
+init_state("processing_question", False)  # 質問処理中フラグ
 # messages は毎回リセットするため、セッション状態では管理しない
 init_state("chat_history",     [])
 
@@ -1986,7 +1987,9 @@ elif st.session_state["authentication_status"]:
         # ページナビゲーションを本文の下に配置
         nav1, nav2, nav3 = st.columns([1, 3, 1])
         with nav1:
-            if st.button("◀ 前へ", disabled=(st.session_state.ui_page == 0), key="nav_prev"):
+            if st.button("◀ 前へ",
+                         disabled=(st.session_state.ui_page == 0 or st.session_state.processing_question),
+                         key="nav_prev"):
                 st.session_state.ui_page -= 1
                 st.rerun()
         with nav2:
@@ -1994,7 +1997,8 @@ elif st.session_state["authentication_status"]:
                         unsafe_allow_html=True)
         with nav3:
             if st.button("次へ ▶",
-                         disabled=(st.session_state.ui_page >= total_ui_pages-1), key="nav_next"):
+                         disabled=(st.session_state.ui_page >= total_ui_pages-1 or st.session_state.processing_question),
+                         key="nav_next"):
                 st.session_state.ui_page += 1
                 st.rerun()
 
@@ -2092,6 +2096,9 @@ elif st.session_state["authentication_status"]:
     #               ユーザー入力処理
     # =================================================
     if user_input:
+        # 処理中フラグを立てる（ページナビゲーション無効化）
+        st.session_state.processing_question = True
+
         st.session_state.question_number += 1
         q_num = st.session_state.question_number
 
@@ -2121,6 +2128,7 @@ elif st.session_state["authentication_status"]:
         # モード2の場合は質問を記録するのみで処理を終了
         if EXPERIMENT_MODE == 2:
             st.info("✅ 質問を記録しました（このモードではシステムは応答しません）")
+            st.session_state.processing_question = False
             st.rerun()
 
         # コンテキスト範囲を決定
@@ -2271,4 +2279,6 @@ elif st.session_state["authentication_status"]:
             st.error(err)
             logger.exception("回答生成失敗")
 
+        # 処理完了：フラグを下ろす
+        st.session_state.processing_question = False
         st.rerun()
