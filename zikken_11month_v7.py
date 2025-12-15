@@ -1959,7 +1959,7 @@ elif st.session_state["authentication_status"]:
     left_col, right_col = st.columns([5, 4])
 
     # -------------------------------------------------
-    # 左：小説表示と質問入力
+    # 左：小説表示のみ
     # -------------------------------------------------
     with left_col:
         st.markdown("### 📖 小説")
@@ -2002,6 +2002,11 @@ elif st.session_state["authentication_status"]:
                 st.session_state.ui_page += 1
                 st.rerun()
 
+    # -------------------------------------------------
+    # 右：質問入力 & 履歴 & 図 & ログ DL
+    # -------------------------------------------------
+    with right_col:
+        # 質問入力エリア
         st.markdown("### 💬 質問")
         user_input_text = st.text_area(
             "この小説について質問してください",
@@ -2021,10 +2026,7 @@ elif st.session_state["authentication_status"]:
         if send_button and user_input_text.strip():
             user_input = user_input_text.strip()
 
-    # -------------------------------------------------
-    # 右：履歴 & 図 & ログ DL
-    # -------------------------------------------------
-    with right_col:
+        st.markdown("---")
         st.markdown("### 📝 質問・回答履歴")
         chat_box = st.container(height=600)
 
