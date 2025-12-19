@@ -113,7 +113,9 @@ def main():
     # 設定
     novels = {
         "shadow": "shadow_text.json",
-        "kabi": "kabi_text.json"
+        "kabi": "kabi_text.json",
+        "sangoku": "sangoku_text.json",
+        "ranpo": "ranpo_text.json"
     }
 
     char_limits = [500]  # 500文字パターンのみ生成
