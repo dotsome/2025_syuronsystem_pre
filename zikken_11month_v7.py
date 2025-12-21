@@ -90,6 +90,53 @@ NOVEL_CATALOG = {
 NOVEL_FILE = "shadow_text.json"
 
 # =================================================
+#                🔸  評価設問の定義
+# =================================================
+# 図に対する評価設問（後から追加可能）
+GRAPH_EVALUATION_QUESTIONS = [
+    {
+        "id": "graph_q1",
+        "text": "この人物関係図は理解しやすかった",
+        "scale_min": "全くそう思わない",
+        "scale_max": "非常にそう思う"
+    },
+    {
+        "id": "graph_q2",
+        "text": "この人物関係図は物語の理解に役立った",
+        "scale_min": "全くそう思わない",
+        "scale_max": "非常にそう思う"
+    },
+    {
+        "id": "graph_q3",
+        "text": "この人物関係図は見やすかった",
+        "scale_min": "全くそう思わない",
+        "scale_max": "非常にそう思う"
+    }
+]
+
+# 回答文に対する評価設問（後から追加可能）
+ANSWER_EVALUATION_QUESTIONS = [
+    {
+        "id": "answer_q1",
+        "text": "この回答は質問に適切に答えていた",
+        "scale_min": "全くそう思わない",
+        "scale_max": "非常にそう思う"
+    },
+    {
+        "id": "answer_q2",
+        "text": "この回答は理解しやすかった",
+        "scale_min": "全くそう思わない",
+        "scale_max": "非常にそう思う"
+    },
+    {
+        "id": "answer_q3",
+        "text": "この回答は物語の理解に役立った",
+        "scale_min": "全くそう思わない",
+        "scale_max": "非常にそう思う"
+    }
+]
+
+# =================================================
 #                🔸  ロガー関連
 # =================================================
 class GoogleDriveUploader:
@@ -1025,6 +1072,144 @@ def build_mermaid_without_subgraph(graph: CharacterGraph) -> str:
     return '\n'.join(filtered_lines)
 
 # =================================================
+#           評価フォーム表示関数
+# =================================================
+def export_evaluations_to_csv():
+    """
+    評価データをCSV形式でエクスポート
+
+    Returns:
+        str: CSV形式の文字列
+    """
+    import csv
+    from io import StringIO
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    # ヘッダー行を書き込み
+    writer.writerow([
+        "評価対象",
+        "対象ID",
+        "質問番号",
+        "タイムスタンプ",
+        "設問ID",
+        "評価値"
+    ])
+
+    # グラフの評価データを書き込み
+    for eval_data in st.session_state.graph_evaluations:
+        graph_id = eval_data.get("graph_id", "")
+        question_id = eval_data.get("question_id", "")
+        timestamp = eval_data.get("timestamp", "")
+        ratings = eval_data.get("ratings", {})
+
+        for q_id, rating in ratings.items():
+            writer.writerow([
+                "図",
+                graph_id,
+                question_id,
+                timestamp,
+                q_id,
+                rating
+            ])
+
+    # 回答の評価データを書き込み
+    for eval_data in st.session_state.answer_evaluations:
+        answer_id = eval_data.get("answer_id", "")
+        question_id = eval_data.get("question_id", "")
+        timestamp = eval_data.get("timestamp", "")
+        ratings = eval_data.get("ratings", {})
+
+        for q_id, rating in ratings.items():
+            writer.writerow([
+                "回答",
+                answer_id,
+                question_id,
+                timestamp,
+                q_id,
+                rating
+            ])
+
+    return output.getvalue()
+
+
+def show_evaluation_form(eval_type, item_id, question_number, questions, logger):
+    """
+    評価フォームを表示して結果を記録する
+
+    Args:
+        eval_type: "graph" または "answer"
+        item_id: 評価対象のID（例: "graph_1", "answer_3"）
+        question_number: 質問番号
+        questions: 評価設問のリスト
+        logger: ロガーオブジェクト
+    """
+    st.markdown("---")
+    st.markdown("### 📝 評価アンケート")
+    st.markdown("以下の項目について評価してください（1: 全くそう思わない ～ 7: 非常にそう思う）")
+
+    # 一意なフォームキーを生成
+    form_key = f"eval_form_{eval_type}_{item_id}_{question_number}"
+
+    with st.form(key=form_key):
+        ratings = {}
+
+        for q in questions:
+            st.markdown(f"**{q['text']}**")
+            col1, col2, col3 = st.columns([1, 6, 1])
+
+            with col1:
+                st.caption(q['scale_min'])
+            with col2:
+                rating = st.radio(
+                    label=q['id'],
+                    options=[1, 2, 3, 4, 5, 6, 7],
+                    horizontal=True,
+                    label_visibility="collapsed",
+                    key=f"{form_key}_{q['id']}"
+                )
+                ratings[q['id']] = rating
+            with col3:
+                st.caption(q['scale_max'])
+
+            st.markdown("")  # 空行を追加
+
+        submitted = st.form_submit_button("評価を送信")
+
+        if submitted:
+            # タイムスタンプを取得
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # 評価データを作成
+            eval_data = {
+                f"{eval_type}_id": item_id,
+                "question_id": question_number,
+                "timestamp": timestamp,
+                "ratings": ratings
+            }
+
+            # session_stateに保存
+            if eval_type == "graph":
+                st.session_state.graph_evaluations.append(eval_data)
+                st.session_state.evaluated_graphs.add(item_id)
+            else:
+                st.session_state.answer_evaluations.append(eval_data)
+                st.session_state.evaluated_answers.add(item_id)
+
+            # ログに記録
+            logger.info(f"=== {eval_type.upper()} EVALUATION ===")
+            logger.info(f"{eval_type}_id: {item_id}")
+            logger.info(f"question_id: {question_number}")
+            logger.info(f"timestamp: {timestamp}")
+            for q_id, rating in ratings.items():
+                logger.info(f"  {q_id}: {rating}")
+            logger.info("="*50)
+
+            st.success("✅ 評価を送信しました")
+            st.rerun()
+
+# =================================================
 #           Streamlit セッション初期化
 # =================================================
 def init_state(key, default):
@@ -1045,6 +1230,11 @@ init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE�
 init_state("processing_question", False)  # 質問処理中フラグ
 # messages は毎回リセットするため、セッション状態では管理しない
 init_state("chat_history",     [])
+# 評価データの保存
+init_state("graph_evaluations", [])  # 図の評価データ: [{graph_id, question_id, timestamp, ratings}]
+init_state("answer_evaluations", [])  # 回答の評価データ: [{answer_id, question_id, timestamp, ratings}]
+init_state("evaluated_graphs", set())  # 評価済みの図のID（例: "graph_1"）
+init_state("evaluated_answers", set())  # 評価済みの回答のID（例: "answer_1"）
 
 # =================================================
 #               認証設定
@@ -1130,8 +1320,8 @@ elif st.session_state["authentication_status"]:
                                      placeholder="例: Taro",
                                      help="ファイル名に使用されます")
             experiment_number = st.text_input("実験ナンバー",
-                                              placeholder="0~5の数字を入力してください（実験モード指定）",
-                                              help="0~5の数字で実験モードを指定します（0:デモモード、1~5:実験モード）")
+                                              placeholder="0~5の数字を入力してください",
+                                              help="0~5の数字を入力してください")
             submitted = st.form_submit_button("次へ")
 
             if submitted:
@@ -1203,7 +1393,7 @@ elif st.session_state["authentication_status"]:
 
         # デモモードかどうかで表示テキストを切り替え
         if int(st.session_state.user_number) == 0:
-            summary_text = "これはデモモードです。本番はここに要約する文章を表示します。"
+            summary_text = "これは練習です。"
         else:
             summary_text = current_novel["summary"]
 
@@ -1313,16 +1503,17 @@ elif st.session_state["authentication_status"]:
     START_PAGE = 0 if DEMO_MODE else X
 
     # デバッグ用：実験モード情報をサイドバーに表示（開発時のみ）
-    with st.sidebar:
-        st.markdown("---")
-        st.markdown("### 🔧 実験モード情報")
-        st.markdown(f"**実験ナンバー:** {EXPERIMENT_MODE}")
-        st.markdown(f"**グラフ生成:** {'✅' if CURRENT_MODE['use_graph'] else '❌'}")
-        st.markdown(f"**Q&A実行:** {'✅' if CURRENT_MODE['use_qa'] else '❌'}")
-        st.markdown(f"**コンテキスト範囲:** {CURRENT_MODE['context_range']}")
-        st.markdown(f"**グラフタイプ:** {CURRENT_MODE['graph_type']}")
-        st.markdown(f"**開始ページ:** {START_PAGE}")
-        st.markdown("---")
+    # 被験者には表示しないためコメントアウト
+    # with st.sidebar:
+    #     st.markdown("---")
+    #     st.markdown("### 🔧 実験モード情報")
+    #     st.markdown(f"**実験ナンバー:** {EXPERIMENT_MODE}")
+    #     st.markdown(f"**グラフ生成:** {'✅' if CURRENT_MODE['use_graph'] else '❌'}")
+    #     st.markdown(f"**Q&A実行:** {'✅' if CURRENT_MODE['use_qa'] else '❌'}")
+    #     st.markdown(f"**コンテキスト範囲:** {CURRENT_MODE['context_range']}")
+    #     st.markdown(f"**グラフタイプ:** {CURRENT_MODE['graph_type']}")
+    #     st.markdown(f"**開始ページ:** {START_PAGE}")
+    #     st.markdown("---")
 
     # =================================================
     #          🔸 ユーザー別ディレクトリ & ログ
@@ -2049,9 +2240,22 @@ elif st.session_state["authentication_status"]:
                             f'border-left:4px solid #2196F3;">'
                             f'<b>回答:</b> {item["content"]}</div>',
                             unsafe_allow_html=True)
+
+                        # 回答の評価フォームを表示（まだ評価されていない場合）
+                        if "number" in item:
+                            answer_id = f"answer_{item['number']}"
+                            if answer_id not in st.session_state.evaluated_answers:
+                                show_evaluation_form("answer", answer_id, item['number'], ANSWER_EVALUATION_QUESTIONS, logger)
+
                     elif item["type"] == "image" and Path(item["path"]).exists():
                         st.image(item["path"], caption=item["caption"],
                                  width="stretch")
+
+                        # 図の評価フォームを表示（まだ評価されていない場合）
+                        if "number" in item:
+                            graph_id = f"graph_{item['number']}"
+                            if graph_id not in st.session_state.evaluated_graphs:
+                                show_evaluation_form("graph", graph_id, item['number'], GRAPH_EVALUATION_QUESTIONS, logger)
 
         # ログダウンロードボタン
         st.markdown("---")
@@ -2066,6 +2270,17 @@ elif st.session_state["authentication_status"]:
                 mime="text/plain",
                 use_container_width=True
             )
+
+            # 評価データのダウンロードボタン
+            if st.session_state.graph_evaluations or st.session_state.answer_evaluations:
+                evaluation_csv = export_evaluations_to_csv()
+                st.download_button(
+                    label="📊 評価データをダウンロード (CSV)",
+                    data=evaluation_csv,
+                    file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_evaluations.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
 
             # 2作品目への遷移処理（1作品目完了後のみ表示）
             if st.session_state.novels_selection_completed and st.session_state.selected_novels:
@@ -2129,7 +2344,7 @@ elif st.session_state["authentication_status"]:
 
         # モード2の場合は質問を記録するのみで処理を終了
         if EXPERIMENT_MODE == 2:
-            st.info("✅ 質問を記録しました（このモードではシステムは応答しません）")
+            st.info("✅ 質問を記録しました")
             st.session_state.processing_question = False
             st.rerun()
 
@@ -2223,6 +2438,7 @@ elif st.session_state["authentication_status"]:
                 if svg_file:
                     st.session_state.chat_history.append(
                         {"type": "image",
+                         "number": q_num,
                          "path": svg_file,
                          "caption": f"登場人物関係図 (質問 #{q_num})"})
                     st.image(svg_file, caption=f"登場人物関係図 (質問 #{q_num})", width="stretch")
@@ -2247,7 +2463,7 @@ elif st.session_state["authentication_status"]:
 
             # 回答を履歴に追加（表示用のみ）
             st.session_state.chat_history.append(
-                {"type": "answer", "content": reply}
+                {"type": "answer", "number": q_num, "content": reply}
             )
             logger.info(f"[A{q_num}] 回答生成完了")
 
@@ -2277,7 +2493,7 @@ elif st.session_state["authentication_status"]:
                 status_placeholder.empty()
             err = f"エラーが発生しました: {e}"
             st.session_state.chat_history.append(
-                {"type": "answer", "content": err}
+                {"type": "answer", "number": q_num, "content": err}
             )
             st.error(err)
             logger.exception("回答生成失敗")
