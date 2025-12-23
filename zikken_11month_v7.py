@@ -1252,6 +1252,8 @@ init_state("graph_evaluations", [])  # 図の評価データ: [{graph_id, questi
 init_state("answer_evaluations", [])  # 回答の評価データ: [{answer_id, question_id, timestamp, ratings}]
 init_state("evaluated_graphs", set())  # 評価済みの図のID（例: "graph_1"）
 init_state("evaluated_answers", set())  # 評価済みの回答のID（例: "answer_1"）
+init_state("chat_log_downloaded", False)  # 詳細ログダウンロード済みフラグ
+init_state("evaluation_csv_downloaded", False)  # 評価データダウンロード済みフラグ
 
 # =================================================
 #               認証設定
@@ -2349,23 +2351,30 @@ elif st.session_state["authentication_status"]:
             with open(log_file, "r", encoding="utf-8") as f:
                 log_content = f.read()
 
-            st.download_button(
-                label="📥 詳細ログをダウンロード",
+            # 詳細ログダウンロードボタン
+            log_button_clicked = st.download_button(
+                label="📥 詳細ログをダウンロード" if not st.session_state.chat_log_downloaded else "✅ 詳細ログをダウンロード済み",
                 data=log_content,
                 file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_chat_log.txt",
                 mime="text/plain",
-                use_container_width=True
+                use_container_width=True,
+                type="primary" if not st.session_state.chat_log_downloaded else "secondary"
             )
+            if log_button_clicked:
+                st.session_state.chat_log_downloaded = True
 
             # 評価データのダウンロードボタン（常に表示）
             evaluation_csv = export_evaluations_to_csv()
-            st.download_button(
-                label="📊 評価データをダウンロード (CSV)",
+            eval_button_clicked = st.download_button(
+                label="📊 評価データをダウンロード (CSV)" if not st.session_state.evaluation_csv_downloaded else "✅ 評価データをダウンロード済み (CSV)",
                 data=evaluation_csv,
                 file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
                 mime="text/csv",
-                use_container_width=True
+                use_container_width=True,
+                type="primary" if not st.session_state.evaluation_csv_downloaded else "secondary"
             )
+            if eval_button_clicked:
+                st.session_state.evaluation_csv_downloaded = True
 
             # 2作品目への遷移処理（1作品目完了後のみ表示）
             if st.session_state.novels_selection_completed and st.session_state.selected_novels:
@@ -2392,6 +2401,9 @@ elif st.session_state["authentication_status"]:
                             st.session_state.answer_evaluations = []
                             st.session_state.evaluated_graphs = set()
                             st.session_state.evaluated_answers = set()
+                            # ダウンロードフラグもリセット
+                            st.session_state.chat_log_downloaded = False
+                            st.session_state.evaluation_csv_downloaded = False
                             st.rerun()
                 elif st.session_state.current_novel_index == 1:
                     st.markdown("---")
