@@ -1331,9 +1331,14 @@ elif st.session_state["authentication_status"]:
 
             if submitted:
                 if nickname and experiment_number_a and experiment_number_b:
-                    # 実験ナンバーが0~5の数字かチェック
-                    if (experiment_number_a.isdigit() and 0 <= int(experiment_number_a) <= 5 and
-                        experiment_number_b.isdigit() and 0 <= int(experiment_number_b) <= 5):
+                    # 実験ナンバーが1~5の半角数字かチェック
+                    # 半角数字のみを許可（全角数字を除外）
+                    def is_valid_experiment_number(num_str):
+                        return (num_str.isascii() and num_str.isdigit() and
+                                1 <= int(num_str) <= 5)
+
+                    if (is_valid_experiment_number(experiment_number_a) and
+                        is_valid_experiment_number(experiment_number_b)):
                         # セッション開始時刻を生成（ユニークなディレクトリ作成用）
                         session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -1346,7 +1351,7 @@ elif st.session_state["authentication_status"]:
                         st.success("プロファイル設定完了!")
                         st.rerun()
                     else:
-                        st.error("実験ナンバーは0~5の半角数字を入力してください")
+                        st.error("実験ナンバーは1~5の半角数字を入力してください")
                 else:
                     st.error("ニックネームと実験ナンバーA・Bの全てを入力してください")
 
