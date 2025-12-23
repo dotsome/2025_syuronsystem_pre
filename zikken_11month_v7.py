@@ -2383,19 +2383,18 @@ elif st.session_state["authentication_status"]:
             # 2作品目への遷移処理（1作品目完了後のみ表示）
             if st.session_state.novels_selection_completed and st.session_state.selected_novels:
                 if st.session_state.current_novel_index == 0 and len(st.session_state.selected_novels) == 2:
-                    # ログダウンロード確認チェックボックス
-                    log_downloaded = st.checkbox(
-                        "ログをダウンロードしました",
-                        key="log_download_confirm"
-                    )
+                    # 両方のダウンロードが完了したら2作品目へ進むボタンを表示
+                    both_downloads_completed = (st.session_state.chat_log_downloaded and
+                                               st.session_state.evaluation_csv_downloaded)
 
-                    if log_downloaded:
+                    if both_downloads_completed:
                         st.markdown("---")
                         st.success("✅ 1作品目の実験が完了しました。2作品目に進んでください。")
                         if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
                             # 2作品目に進む
                             st.session_state.current_novel_index = 1
-                            st.session_state.log_downloaded = False  # リセット
+                            st.session_state.chat_log_downloaded = False  # リセット
+                            st.session_state.evaluation_csv_downloaded = False  # リセット
                             st.session_state.summary_read = False
                             st.session_state.question_number = 0
                             st.session_state.ui_page = 0
