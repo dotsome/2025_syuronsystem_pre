@@ -2409,8 +2409,13 @@ elif st.session_state["authentication_status"]:
                             st.session_state.evaluation_csv_downloaded = False
                             st.rerun()
                 elif st.session_state.current_novel_index == 1:
-                    st.markdown("---")
-                    st.success("🎉 2作品すべての実験が完了しました！お疲れ様でした。")
+                    # 両方のダウンロードが完了したら完了メッセージを表示
+                    both_downloads_completed = (st.session_state.chat_log_downloaded and
+                                               st.session_state.evaluation_csv_downloaded)
+
+                    if both_downloads_completed:
+                        st.markdown("---")
+                        st.success("🎉 2作品すべての実験が完了しました！お疲れ様でした。")
         else:
             st.info("ログファイルがまだ作成されていません")
 
