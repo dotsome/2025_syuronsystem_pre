@@ -2220,7 +2220,9 @@ elif st.session_state["authentication_status"]:
         # ページナビゲーションを本文の下に配置
         nav1, nav2, nav3 = st.columns([1, 3, 1])
         with nav1:
-            if st.button("◀ 前へ",
+            # 処理中の場合はボタンテキストを変更
+            prev_button_text = "⏳ 処理中..." if st.session_state.processing_question else "◀ 前へ"
+            if st.button(prev_button_text,
                          disabled=(st.session_state.ui_page == 0 or st.session_state.processing_question),
                          key="nav_prev"):
                 st.session_state.ui_page -= 1
@@ -2229,7 +2231,9 @@ elif st.session_state["authentication_status"]:
             st.markdown(f"<center>ページ {real_page_index + 1} / {total_pages}</center>",
                         unsafe_allow_html=True)
         with nav3:
-            if st.button("次へ ▶",
+            # 処理中の場合はボタンテキストを変更
+            next_button_text = "⏳ 処理中..." if st.session_state.processing_question else "次へ ▶"
+            if st.button(next_button_text,
                          disabled=(st.session_state.ui_page >= total_ui_pages-1 or st.session_state.processing_question),
                          key="nav_next"):
                 st.session_state.ui_page += 1
