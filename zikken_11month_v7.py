@@ -2358,10 +2358,12 @@ elif st.session_state["authentication_status"]:
                 file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_chat_log.txt",
                 mime="text/plain",
                 use_container_width=True,
-                type="primary" if not st.session_state.chat_log_downloaded else "secondary"
+                type="primary" if not st.session_state.chat_log_downloaded else "secondary",
+                key="download_log_button"
             )
-            if log_button_clicked:
+            if log_button_clicked and not st.session_state.chat_log_downloaded:
                 st.session_state.chat_log_downloaded = True
+                st.rerun()
 
             # 評価データのダウンロードボタン（常に表示）
             evaluation_csv = export_evaluations_to_csv()
@@ -2371,10 +2373,12 @@ elif st.session_state["authentication_status"]:
                 file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
                 mime="text/csv",
                 use_container_width=True,
-                type="primary" if not st.session_state.evaluation_csv_downloaded else "secondary"
+                type="primary" if not st.session_state.evaluation_csv_downloaded else "secondary",
+                key="download_eval_button"
             )
-            if eval_button_clicked:
+            if eval_button_clicked and not st.session_state.evaluation_csv_downloaded:
                 st.session_state.evaluation_csv_downloaded = True
+                st.rerun()
 
             # 2作品目への遷移処理（1作品目完了後のみ表示）
             if st.session_state.novels_selection_completed and st.session_state.selected_novels:
