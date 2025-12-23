@@ -1153,6 +1153,7 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger)
     st.markdown("---")
     st.markdown("### 📝 評価アンケート")
     st.markdown("以下の項目について評価してください（1: 全くそう思わない ～ 7: 非常にそう思う）")
+    st.markdown("**⚠️ 全ての項目に回答してから送信してください**")
 
     # 一意なフォームキーを生成
     form_key = f"eval_form_{eval_type}_{item_id}_{question_number}"
@@ -1167,9 +1168,11 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger)
             with col1:
                 st.caption(q['scale_min'])
             with col2:
+                # 「未選択」を含むオプションを用意
                 rating = st.radio(
                     label=q['id'],
-                    options=[1, 2, 3, 4, 5, 6, 7],
+                    options=["未選択", 1, 2, 3, 4, 5, 6, 7],
+                    index=0,  # デフォルトは「未選択」
                     horizontal=True,
                     label_visibility="collapsed",
                     key=f"{form_key}_{q['id']}"
@@ -1183,6 +1186,11 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger)
         submitted = st.form_submit_button("評価を送信")
 
         if submitted:
+            # 未選択の項目があるかチェック
+            unselected = [q['text'] for q in questions if ratings.get(q['id']) == "未選択"]
+            if unselected:
+                st.error(f"⚠️ 以下の項目が未選択です：\n" + "\n".join([f"- {text}" for text in unselected]))
+                st.stop()
             # タイムスタンプを取得
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1211,7 +1219,7 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger)
                 logger.info(f"  {q_id}: {rating}")
             logger.info("="*50)
 
-            st.success("✅ 評価を送信しました")
+            # 評価送信完了後、画面を再描画して完了メッセージを表示
             st.rerun()
 
 # =================================================
@@ -2278,6 +2286,8 @@ elif st.session_state["authentication_status"]:
                             answer_id = f"answer_{item['number']}"
                             if answer_id not in st.session_state.evaluated_answers:
                                 show_evaluation_form("answer", answer_id, item['number'], ANSWER_EVALUATION_QUESTIONS, logger)
+                            else:
+                                st.info(f"✅ 質問#{item['number']}の回答テキスト評価を送信しました")
 
                     elif item["type"] == "image" and Path(item["path"]).exists():
                         st.image(item["path"], caption=item["caption"],
@@ -2288,6 +2298,8 @@ elif st.session_state["authentication_status"]:
                             graph_id = f"graph_{item['number']}"
                             if graph_id not in st.session_state.evaluated_graphs:
                                 show_evaluation_form("graph", graph_id, item['number'], GRAPH_EVALUATION_QUESTIONS, logger)
+                            else:
+                                st.info(f"✅ 質問#{item['number']}の図の評価を送信しました")
 
         # ログダウンロードボタン
         st.markdown("---")
@@ -2303,16 +2315,15 @@ elif st.session_state["authentication_status"]:
                 use_container_width=True
             )
 
-            # 評価データのダウンロードボタン
-            if st.session_state.graph_evaluations or st.session_state.answer_evaluations:
-                evaluation_csv = export_evaluations_to_csv()
-                st.download_button(
-                    label="📊 評価データをダウンロード (CSV)",
-                    data=evaluation_csv,
-                    file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+            # 評価データのダウンロードボタン（常に表示）
+            evaluation_csv = export_evaluations_to_csv()
+            st.download_button(
+                label="📊 評価データをダウンロード (CSV)",
+                data=evaluation_csv,
+                file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
 
             # 2作品目への遷移処理（1作品目完了後のみ表示）
             if st.session_state.novels_selection_completed and st.session_state.selected_novels:
