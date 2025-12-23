@@ -1217,7 +1217,9 @@ def init_state(key, default):
         st.session_state[key] = default
 
 init_state("user_name",        "")
-init_state("user_number",      "")
+init_state("user_number",      "")  # 後方互換性のため残す（user_number_aと同じ値）
+init_state("user_number_a",    "")  # 1作品目の実験ナンバー
+init_state("user_number_b",    "")  # 2作品目の実験ナンバー
 init_state("session_timestamp", "")  # セッション開始時刻（ユニーク化用）
 init_state("profile_completed", False)  # プロファイル入力完了フラグ
 init_state("novels_selection_completed", False)  # 小説選択完了フラグ
@@ -1319,28 +1321,34 @@ elif st.session_state["authentication_status"]:
             nickname = st.text_input("ニックネーム",
                                      placeholder="例: Taro",
                                      help="ファイル名に使用されます")
-            experiment_number = st.text_input("実験ナンバー",
-                                              placeholder="0~5の数字を入力してください",
-                                              help="0~5の数字を入力してください")
+            experiment_number_a = st.text_input("実験ナンバーA（1作品目）",
+                                                placeholder="指定された1~5の半角数字を入力してください",
+                                                help="指定された1~5の半角数字を入力してください")
+            experiment_number_b = st.text_input("実験ナンバーB（2作品目）",
+                                                placeholder="指定された1~5の半角数字を入力してください",
+                                                help="指定された1~5の半角数字を入力してください")
             submitted = st.form_submit_button("次へ")
 
             if submitted:
-                if nickname and experiment_number:
+                if nickname and experiment_number_a and experiment_number_b:
                     # 実験ナンバーが0~5の数字かチェック
-                    if experiment_number.isdigit() and 0 <= int(experiment_number) <= 5:
+                    if (experiment_number_a.isdigit() and 0 <= int(experiment_number_a) <= 5 and
+                        experiment_number_b.isdigit() and 0 <= int(experiment_number_b) <= 5):
                         # セッション開始時刻を生成（ユニークなディレクトリ作成用）
                         session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
                         st.session_state.user_name = nickname
-                        st.session_state.user_number = experiment_number
+                        st.session_state.user_number_a = experiment_number_a
+                        st.session_state.user_number_b = experiment_number_b
+                        st.session_state.user_number = experiment_number_a  # 後方互換性のため
                         st.session_state.session_timestamp = session_timestamp
                         st.session_state.profile_completed = True
                         st.success("プロファイル設定完了!")
                         st.rerun()
                     else:
-                        st.error("実験ナンバーは0~5の数字を入力してください")
+                        st.error("実験ナンバーは0~5の半角数字を入力してください")
                 else:
-                    st.error("ニックネームと実験ナンバーの両方を入力してください")
+                    st.error("ニックネームと実験ナンバーA・Bの全てを入力してください")
 
         # プロファイル入力画面ではここで停止
         st.stop()
@@ -1496,8 +1504,14 @@ elif st.session_state["authentication_status"]:
     # =================================================
     #          🔸 実験モード設定（ユーザー入力後）
     # =================================================
-    # ユーザーが入力した実験ナンバーから実験モードを取得
-    EXPERIMENT_MODE = int(st.session_state.user_number)
+    # 現在の小説インデックスに基づいて適切な実験ナンバーを選択
+    # 1作品目（index=0）は実験ナンバーA、2作品目（index=1）は実験ナンバーB
+    if st.session_state.current_novel_index == 0:
+        current_experiment_number = st.session_state.user_number_a
+    else:
+        current_experiment_number = st.session_state.user_number_b
+
+    EXPERIMENT_MODE = int(current_experiment_number)
     CURRENT_MODE = get_mode_config(EXPERIMENT_MODE)
     DEMO_MODE = (EXPERIMENT_MODE == 0)
     START_PAGE = 0 if DEMO_MODE else X
@@ -1522,11 +1536,19 @@ elif st.session_state["authentication_status"]:
     base_dir = Path("zikken_result")
     base_dir.mkdir(exist_ok=True)
 
+    # 現在の小説キーを取得
+    if st.session_state.novels_selection_completed and st.session_state.selected_novels:
+        current_novel_key = st.session_state.selected_novels[st.session_state.current_novel_index]
+    else:
+        current_novel_key = "unknown"
+
     # ユーザー別ディレクトリを zikken_result 配下に作成（タイムスタンプ付きでユニーク化）
-    user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}"
+    # 実験ナンバーA/Bと小説キーを含める
+    user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.session_timestamp}"
     user_dir.mkdir(exist_ok=True)
 
-    log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}_chat_log.txt"
+    # ログファイル名に現在の小説と実験ナンバーを含める
+    log_file = user_dir / f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_{st.session_state.session_timestamp}_chat_log.txt"
     logger   = _build_logger(log_file)
     logger.info("--- Session started ---")
     logger.info(f"実験モード: {EXPERIMENT_MODE}")
@@ -2266,7 +2288,7 @@ elif st.session_state["authentication_status"]:
             st.download_button(
                 label="📥 詳細ログをダウンロード",
                 data=log_content,
-                file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_chat_log.txt",
+                file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_chat_log.txt",
                 mime="text/plain",
                 use_container_width=True
             )
@@ -2277,7 +2299,7 @@ elif st.session_state["authentication_status"]:
                 st.download_button(
                     label="📊 評価データをダウンロード (CSV)",
                     data=evaluation_csv,
-                    file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_evaluations.csv",
+                    file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
@@ -2302,6 +2324,11 @@ elif st.session_state["authentication_status"]:
                             st.session_state.question_number = 0
                             st.session_state.ui_page = 0
                             st.session_state.chat_history = []
+                            # 評価データもリセット
+                            st.session_state.graph_evaluations = []
+                            st.session_state.answer_evaluations = []
+                            st.session_state.evaluated_graphs = set()
+                            st.session_state.evaluated_answers = set()
                             st.rerun()
                 elif st.session_state.current_novel_index == 1:
                     st.markdown("---")
