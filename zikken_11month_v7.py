@@ -1504,8 +1504,14 @@ elif st.session_state["authentication_status"]:
     # =================================================
     #          🔸 実験モード設定（ユーザー入力後）
     # =================================================
-    # ユーザーが入力した実験ナンバーから実験モードを取得
-    EXPERIMENT_MODE = int(st.session_state.user_number)
+    # 現在の小説インデックスに基づいて適切な実験ナンバーを選択
+    # 1作品目（index=0）は実験ナンバーA、2作品目（index=1）は実験ナンバーB
+    if st.session_state.current_novel_index == 0:
+        current_experiment_number = st.session_state.user_number_a
+    else:
+        current_experiment_number = st.session_state.user_number_b
+
+    EXPERIMENT_MODE = int(current_experiment_number)
     CURRENT_MODE = get_mode_config(EXPERIMENT_MODE)
     DEMO_MODE = (EXPERIMENT_MODE == 0)
     START_PAGE = 0 if DEMO_MODE else X
@@ -1530,11 +1536,19 @@ elif st.session_state["authentication_status"]:
     base_dir = Path("zikken_result")
     base_dir.mkdir(exist_ok=True)
 
+    # 現在の小説キーを取得
+    if st.session_state.novels_selection_completed and st.session_state.selected_novels:
+        current_novel_key = st.session_state.selected_novels[st.session_state.current_novel_index]
+    else:
+        current_novel_key = "unknown"
+
     # ユーザー別ディレクトリを zikken_result 配下に作成（タイムスタンプ付きでユニーク化）
-    user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}"
+    # 実験ナンバーA/Bと小説キーを含める
+    user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.session_timestamp}"
     user_dir.mkdir(exist_ok=True)
 
-    log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number}_{st.session_state.session_timestamp}_chat_log.txt"
+    # ログファイル名に現在の小説と実験ナンバーを含める
+    log_file = user_dir / f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_{st.session_state.session_timestamp}_chat_log.txt"
     logger   = _build_logger(log_file)
     logger.info("--- Session started ---")
     logger.info(f"実験モード: {EXPERIMENT_MODE}")
@@ -2274,7 +2288,7 @@ elif st.session_state["authentication_status"]:
             st.download_button(
                 label="📥 詳細ログをダウンロード",
                 data=log_content,
-                file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_chat_log.txt",
+                file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_chat_log.txt",
                 mime="text/plain",
                 use_container_width=True
             )
@@ -2285,7 +2299,7 @@ elif st.session_state["authentication_status"]:
                 st.download_button(
                     label="📊 評価データをダウンロード (CSV)",
                     data=evaluation_csv,
-                    file_name=f"{st.session_state.user_name}_{st.session_state.user_number}_evaluations.csv",
+                    file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
@@ -2310,6 +2324,11 @@ elif st.session_state["authentication_status"]:
                             st.session_state.question_number = 0
                             st.session_state.ui_page = 0
                             st.session_state.chat_history = []
+                            # 評価データもリセット
+                            st.session_state.graph_evaluations = []
+                            st.session_state.answer_evaluations = []
+                            st.session_state.evaluated_graphs = set()
+                            st.session_state.evaluated_answers = set()
                             st.rerun()
                 elif st.session_state.current_novel_index == 1:
                     st.markdown("---")
