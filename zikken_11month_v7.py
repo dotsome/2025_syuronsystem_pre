@@ -2219,11 +2219,14 @@ elif st.session_state["authentication_status"]:
 
         # ページナビゲーションを本文の下に配置
         nav1, nav2, nav3 = st.columns([1, 3, 1])
+
+        # 送信中または処理中の場合はナビゲーションを無効化
+        is_processing = (st.session_state.processing_question or
+                        st.session_state.submit_button_status in ["submitting", "processing"])
+
         with nav1:
-            # 処理中の場合はボタンテキストを変更
-            prev_button_text = "⏳ 処理中..." if st.session_state.processing_question else "◀ 前へ"
-            if st.button(prev_button_text,
-                         disabled=(st.session_state.ui_page == 0 or st.session_state.processing_question),
+            if st.button("◀ 前へ",
+                         disabled=(st.session_state.ui_page == 0 or is_processing),
                          key="nav_prev"):
                 st.session_state.ui_page -= 1
                 st.rerun()
@@ -2231,10 +2234,8 @@ elif st.session_state["authentication_status"]:
             st.markdown(f"<center>ページ {real_page_index + 1} / {total_pages}</center>",
                         unsafe_allow_html=True)
         with nav3:
-            # 処理中の場合はボタンテキストを変更
-            next_button_text = "⏳ 処理中..." if st.session_state.processing_question else "次へ ▶"
-            if st.button(next_button_text,
-                         disabled=(st.session_state.ui_page >= total_ui_pages-1 or st.session_state.processing_question),
+            if st.button("次へ ▶",
+                         disabled=(st.session_state.ui_page >= total_ui_pages-1 or is_processing),
                          key="nav_next"):
                 st.session_state.ui_page += 1
                 st.rerun()
@@ -2287,16 +2288,16 @@ elif st.session_state["authentication_status"]:
         # ボタンが押されたときまたは送信中の場合に処理
         user_input = None
 
-        if send_button and user_input_text.strip():
+        # まず、送信中状態の場合は処理中に移行
+        if st.session_state.submit_button_status == "submitting" and st.session_state.pending_question:
+            # 送信中状態→処理中状態に移行してから質問を処理する
+            st.session_state.submit_button_status = "processing"
+            user_input = st.session_state.pending_question
+        elif send_button and user_input_text.strip():
             # ボタンが押された→質問を保存して送信中状態にする
             st.session_state.pending_question = user_input_text.strip()
             st.session_state.submit_button_status = "submitting"
             st.rerun()
-        elif st.session_state.submit_button_status == "submitting" and st.session_state.pending_question:
-            # 送信中状態→質問を処理する
-            user_input = st.session_state.pending_question
-            # 状態を「処理中」に変更
-            st.session_state.submit_button_status = "processing"
 
         st.markdown("---")
         st.markdown("### 📝 質問・回答履歴")
