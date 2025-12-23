@@ -1217,7 +1217,9 @@ def init_state(key, default):
         st.session_state[key] = default
 
 init_state("user_name",        "")
-init_state("user_number",      "")
+init_state("user_number",      "")  # 後方互換性のため残す（user_number_aと同じ値）
+init_state("user_number_a",    "")  # 1作品目の実験ナンバー
+init_state("user_number_b",    "")  # 2作品目の実験ナンバー
 init_state("session_timestamp", "")  # セッション開始時刻（ユニーク化用）
 init_state("profile_completed", False)  # プロファイル入力完了フラグ
 init_state("novels_selection_completed", False)  # 小説選択完了フラグ
@@ -1319,28 +1321,34 @@ elif st.session_state["authentication_status"]:
             nickname = st.text_input("ニックネーム",
                                      placeholder="例: Taro",
                                      help="ファイル名に使用されます")
-            experiment_number = st.text_input("実験ナンバー",
-                                              placeholder="0~5の数字を入力してください",
-                                              help="0~5の数字を入力してください")
+            experiment_number_a = st.text_input("実験ナンバーA（1作品目）",
+                                                placeholder="指定された1~5の半角数字を入力してください",
+                                                help="指定された1~5の半角数字を入力してください")
+            experiment_number_b = st.text_input("実験ナンバーB（2作品目）",
+                                                placeholder="指定された1~5の半角数字を入力してください",
+                                                help="指定された1~5の半角数字を入力してください")
             submitted = st.form_submit_button("次へ")
 
             if submitted:
-                if nickname and experiment_number:
+                if nickname and experiment_number_a and experiment_number_b:
                     # 実験ナンバーが0~5の数字かチェック
-                    if experiment_number.isdigit() and 0 <= int(experiment_number) <= 5:
+                    if (experiment_number_a.isdigit() and 0 <= int(experiment_number_a) <= 5 and
+                        experiment_number_b.isdigit() and 0 <= int(experiment_number_b) <= 5):
                         # セッション開始時刻を生成（ユニークなディレクトリ作成用）
                         session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
                         st.session_state.user_name = nickname
-                        st.session_state.user_number = experiment_number
+                        st.session_state.user_number_a = experiment_number_a
+                        st.session_state.user_number_b = experiment_number_b
+                        st.session_state.user_number = experiment_number_a  # 後方互換性のため
                         st.session_state.session_timestamp = session_timestamp
                         st.session_state.profile_completed = True
                         st.success("プロファイル設定完了!")
                         st.rerun()
                     else:
-                        st.error("実験ナンバーは0~5の数字を入力してください")
+                        st.error("実験ナンバーは0~5の半角数字を入力してください")
                 else:
-                    st.error("ニックネームと実験ナンバーの両方を入力してください")
+                    st.error("ニックネームと実験ナンバーA・Bの全てを入力してください")
 
         # プロファイル入力画面ではここで停止
         st.stop()
