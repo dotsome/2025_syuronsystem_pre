@@ -359,7 +359,12 @@ class GoogleSheetsLogger:
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                 self.client = gspread.authorize(creds)
                 self.spreadsheet = self.client.open_by_key(self.spreadsheet_key)
-                st.success(f"✅ Google Sheets接続成功")
+
+                # 接続成功メッセージを3秒間表示してから消す
+                success_placeholder = st.empty()
+                success_placeholder.success(f"✅ Google Sheets接続成功")
+                time.sleep(3)
+                success_placeholder.empty()
             else:
                 st.warning("⚠️ gcp_service_account がsecretsに見つかりません")
         except Exception as e:
