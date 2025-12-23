@@ -1243,6 +1243,8 @@ init_state("summary_read",      False)  # 要約テキスト読了フラグ
 init_state("question_number",  0)
 init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE）
 init_state("processing_question", False)  # 質問処理中フラグ
+init_state("submit_button_status", "idle")  # 送信ボタンの状態: idle, submitting, processing, completed
+init_state("pending_question", "")  # 送信待ちの質問テキスト
 # messages は毎回リセットするため、セッション状態では管理しない
 init_state("chat_history",     [])
 # 評価データの保存
@@ -2246,16 +2248,51 @@ elif st.session_state["authentication_status"]:
             placeholder="例: 主人公の名前は何ですか？"
         )
 
-        # モード2の場合は送信ボタンを表示するが、システムは応答しない
-        if EXPERIMENT_MODE == 2:
-            send_button = st.button("📤 送信（記録のみ）", type="primary", use_container_width=True)
-        else:
-            send_button = st.button("📤 送信", type="primary", use_container_width=True)
+        # 完了状態の場合は1秒後にリセット
+        if st.session_state.submit_button_status == "completed":
+            time.sleep(1)
+            st.session_state.submit_button_status = "idle"
+            st.rerun()
 
-        # ボタンが押されたときに user_input に値を設定
+        # 送信ボタンの状態に応じてテキストと無効化を変更
+        button_status = st.session_state.submit_button_status
+
+        if button_status == "submitting":
+            button_text = "⏳ 送信中です"
+            button_disabled = True
+        elif button_status == "processing":
+            button_text = "⚙️ 処理中です"
+            button_disabled = True
+        elif button_status == "completed":
+            button_text = "✅ 完了しました"
+            button_disabled = True
+        else:  # idle
+            if EXPERIMENT_MODE == 2:
+                button_text = "📤 送信（記録のみ）"
+            else:
+                button_text = "📤 送信"
+            button_disabled = False
+
+        send_button = st.button(
+            button_text,
+            type="primary",
+            use_container_width=True,
+            disabled=button_disabled
+        )
+
+        # ボタンが押されたときまたは送信中の場合に処理
         user_input = None
+
         if send_button and user_input_text.strip():
-            user_input = user_input_text.strip()
+            # ボタンが押された→質問を保存して送信中状態にする
+            st.session_state.pending_question = user_input_text.strip()
+            st.session_state.submit_button_status = "submitting"
+            st.rerun()
+        elif st.session_state.submit_button_status == "submitting" and st.session_state.pending_question:
+            # 送信中状態→質問を処理する
+            user_input = st.session_state.pending_question
+            # 状態を「処理中」に変更
+            st.session_state.submit_button_status = "processing"
 
         st.markdown("---")
         st.markdown("### 📝 質問・回答履歴")
@@ -2394,6 +2431,8 @@ elif st.session_state["authentication_status"]:
         if EXPERIMENT_MODE == 2:
             st.info("✅ 質問を記録しました")
             st.session_state.processing_question = False
+            st.session_state.submit_button_status = "completed"
+            st.session_state.pending_question = ""
             st.rerun()
 
         # コンテキスト範囲を決定
@@ -2548,4 +2587,6 @@ elif st.session_state["authentication_status"]:
 
         # 処理完了：フラグを下ろす
         st.session_state.processing_question = False
+        st.session_state.submit_button_status = "completed"
+        st.session_state.pending_question = ""
         st.rerun()
