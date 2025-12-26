@@ -137,6 +137,35 @@ ANSWER_EVALUATION_QUESTIONS = [
 ]
 
 # =================================================
+#                🔸  ルビ変換関数
+# =================================================
+def convert_ruby_to_html(text: str) -> str:
+    """
+    青空文庫形式のルビ（漢字《かんじ》）をHTMLのrubyタグに変換
+
+    Args:
+        text: 青空文庫形式のテキスト
+
+    Returns:
+        HTMLのrubyタグに変換されたテキスト
+
+    Examples:
+        >>> convert_ruby_to_html("後漢《ごかん》の建寧《けんねい》")
+        '<ruby>後漢<rt>ごかん</rt></ruby>の<ruby>建寧<rt>けんねい</rt></ruby>'
+    """
+    # 青空文庫形式: 漢字《かんじ》 → HTML: <ruby>漢字<rt>かんじ</rt></ruby>
+    # 正規表現で《》内のルビを抽出し、HTMLに変換
+    pattern = r'([^《]+)《([^》]+)》'
+
+    def replace_ruby(match):
+        kanji = match.group(1)
+        reading = match.group(2)
+        return f'<ruby>{kanji}<rt>{reading}</rt></ruby>'
+
+    result = re.sub(pattern, replace_ruby, text)
+    return result
+
+# =================================================
 #                🔸  ロガー関連
 # =================================================
 class GoogleDriveUploader:
@@ -1641,7 +1670,8 @@ elif st.session_state["authentication_status"]:
         story_sections = load_story(demo_mode, novel_file)
         # story_sectionsをそのまま返す（辞書形式）
         pages_all = story_sections
-        pages_ui_formatted = [f"【{sec['section']}章】 {sec['title']}\n\n{sec['text']}"
+        # ルビをHTML形式に変換して表示用テキストを作成
+        pages_ui_formatted = [f"【{sec['section']}章】 {sec['title']}\n\n{convert_ruby_to_html(sec['text'])}"
                               for sec in story_sections[start_page:]]
         return pages_all, pages_ui_formatted, len(pages_ui_formatted), len(pages_all)
 
