@@ -10,7 +10,11 @@
 import json
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from openai import OpenAI
+
+# .envファイルから環境変数を読み込み（既存の環境変数を上書き）
+load_dotenv(override=True)
 
 # OpenAI APIキー設定
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -110,12 +114,28 @@ def save_forgetting_text(novel_name: str, char_limit: int, pattern_num: int, tex
 
 def main():
     """メイン処理"""
-    # 設定
+    # 設定: 各小説の読者が読む推奨章の一つ前までを対象とする
     novels = {
-        "shadow": "shadow_text.json",
-        "kabi": "kabi_text.json",
-        "sangoku": "sangoku_text.json",
-        "ranpo": "ranpo_text.json"
+        "shadow": {
+            "file": "shadow_text.json",
+            "max_chapters": 24  # 25-26章を読むので、24章までのあらすじ
+        },
+        "sangoku_2": {
+            "file": "sangoku_2_text.json",
+            "max_chapters": 56  # 57-58章を読むので、56章までのあらすじ
+        },
+        "ranpo": {
+            "file": "ranpo_text_ruby.json",
+            "max_chapters": 10  # 11-12章を読むので、10章までのあらすじ
+        },
+        "texhnical_area": {
+            "file": "texhnical_area_text.json",
+            "max_chapters": 43  # 44-45章を読むので、43章までのあらすじ
+        },
+        "online_utyu": {
+            "file": "online_utyu_text.json",
+            "max_chapters": 22  # 23-24章を読むので、22章までのあらすじ
+        }
     }
 
     char_limits = [500]  # 500文字パターンのみ生成
@@ -128,12 +148,12 @@ def main():
     print(f"各パターンの生成数: {patterns_per_limit}")
     print()
 
-    for novel_name, novel_file in novels.items():
+    for novel_name, novel_config in novels.items():
         print(f"📖 {novel_name.upper()} の処理を開始")
 
-        # 小説本文を読み込み（29章まで）
-        novel_text = load_novel(novel_file, max_chapters=29)
-        print(f"  本文読み込み完了: {len(novel_text):,}文字")
+        # 小説本文を読み込み（各小説の推奨章の一つ前まで）
+        novel_text = load_novel(novel_config["file"], max_chapters=novel_config["max_chapters"])
+        print(f"  本文読み込み完了: {novel_config['max_chapters']}章まで, {len(novel_text):,}文字")
 
         for char_limit in char_limits:
             print(f"\n  📝 {char_limit}文字パターン:")

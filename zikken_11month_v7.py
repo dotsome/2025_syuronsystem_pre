@@ -62,27 +62,42 @@ NOVEL_CATALOG = {
     "shadow": {
         "title": "影の実力者になりたくて！",
         "file": "shadow_text.json",
-        "summary": """物心ついた頃から「陰の実力者」に憧れてた主人公シドは、現代日本で格闘技や意味不明な修行をしまくった末、トラックに跳ねられて異世界貴族家の息子に転生する。魔力を得た彼は、表では凡庸な魔剣士見習い、裏では全裸修行とスライム製ボディスーツで力を磨き、盗賊団を個人的に狩って資金を貯めていく。その途中で教会に処刑されるはずだった「悪魔憑き」の金髪エルフを、肉塊状態のまま実験して元に戻してしまい、彼女をアルファと名付けて「シャドウガーデン」を結成、でっち上げたはずのディアボロス教団が実在していたことになっていく。姉クレアが誘拐された事件では、教団側のオルバ子爵と地下施設で戦い、暴走薬で覚醒した相手を圧倒的な技量でねじ伏せて処刑、陰の実力者としての最初の見せ場を作る。その後王都の魔剣士学園に入り、罰ゲーム告白から第二王女アレクシアと偽の恋人関係になり、剣の稽古や差し入れデートを重ねるが、彼女は教団と繋がった剣術指南役ゼノンに拉致される。シドは容疑者として拷問を受けつつ、アルファたち七陰が王都で同時多発襲撃を仕掛け、デルタの大暴れやアルファの一刀で化物を葬る中、本人は地下でゼノンと対決、覚醒薬で強化された相手を「アイ・アム・アトミック」で地下施設ごと蒸発させる。事件後、アレクシアと姉アイリスは和解し、シドはアレクシアの本気の告白をあっさり断ってモブに戻る。裏ではガンマがシドの前世知識を元に巨大商会ミツゴシを築き、彼はそこから金とチョコだけせしめて、学術学園の天才シェリーに何も知らずチョコを渡す。一方、王都ではシャドウガーデンを騙る人斬りが出現し、アレクシアが追い詰めたところへ本物のシャドウが現れて偽者を粛清、「関わるな」と言い残して去っていく。アイリスは紅の騎士団を組織して教団と漆黒の集団の両方を追い、シドは相変わらず大会に出たくないモブ生活を続けながら、その裏で陰の実力者ムーブを拡大していく……という流れだったと思う。"""
+        "read_start_chapter": 25,  # 読者が読む開始章
+        "read_end_chapter": 26,    # 読者が読む終了章
+        "summary_max_chapter": 24, # 忘却あらすじの対象章（この章まで）
+        "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
-    "kabi": {
-        "title": "黴",
-        "file": "kabi_text.json",
-        "summary": """物語は、放浪の末に東京へ戻った笹村が、下宿暮らしに倦み、友人Ｋの新築長屋の一軒を借りて「家を持つ」ところから本格的に動き出す。最初は友人の深山やＴと同居し、よぼよぼの爺さんを使いに雇うが続かず、友人の伯母が連れて来た婆さんと、その娘のお銀が台所を預かるようになる。お銀は四ツ谷の親類筋や、商業学校生の磯谷とのいわく付きの過去を断片的に語り、深山の一族とも妙な線でつながっていることがわかり、三人のあいだに気まずい空気が生まれていく。そこへ田舎から甥が転がり込み、深山は同じ長屋の別戸へ移転、代わりにお銀が笹村の身の回りにますます入り込む。金や食事や客の世話を一手に引き受ける一方、夜遊びや派手な身なりが笹村の神経を逆なでし、罵り合いと和解をくり返すうち、ほとんど内縁同然になってしまう。やがてお銀の妊娠が判明し、医者や俳友Ｂも巻き込んで「産ませるか、どこかへ隠れて始末するか」が真剣に論じられるが、京橋の知り合いの二階へ身を寄せる案も立ち消えとなり、結局この薄汚れた貸家で初産に臨むことになる。その間に、笹村は尊敬する文壇の師Ｍ先生の胃癌入院を手伝い、大部の翻訳仕事を請け負って牛込の下宿へ転じるが、金はなく、時計まで盗まれる始末で、先生の病状も悪化するばかり。ついに難産の末に男児が生まれ、一時は里子に出す話まで出るものの、お銀は自分で育てたいと泣き、笹村も決めきれないまま、妻の入籍と子の出生届をほとんど同時に出す未来だけが、ぼんやりと示されて物語は終盤を迎えていたと思う。"""
-    },
-    "sangoku": {
-        "title": "三国志（桃園の巻）",
-        "file": "sangoku_text.json",
-        "summary": """後漢末、建寧元年ごろ、若き劉備は黄河のほとりで漢室再興を天に誓い、役人に怪しまれながらも、洛陽から来る船を待ち、二年かけてためた金と父の遺した琅玕の珠まで出して、母の好物である高価な茶を少量だけ買い求める。ところが宿場は夜半に黄巾賊に襲われ、彼は母を思って戦わずに逃げ、孔子廟で武による救民を誓ったところを、黄巾軍の大方・馬元義らに捕らえられ、荷物持ちとして連れ回される。道中、荒れた寺で池の蓮の下に死体が沈む惨状や、張角が神仙から太平要術を授かったという黄巾党の由来、蒼天已死・天下大吉の旗印、さらには背後に匈奴の援助があることなどを聞かされる。やがて劉備は茶壺目当てに疑われて縛られるが、飢えた老僧に救い出され、白馬と旧県令の娘・鴻芙蓉を託されて県軍の陣へ届けに走る。老僧は塔上から身を投げて殿を務め、劉備と芙蓉は追撃を受け、白馬は射殺される。丸腰で奮戦した劉備はついに倒れるが、その前に潜入していた旧鴻家家臣の豪傑・張飛が裏切って賊を粉砕し、奪われていた名剣と茶壺を取り返してくれる。劉備は命の恩に感激し、先祖伝来の剣を張飛に贈り、自分は代わりの剣を与えられて、芙蓉を託した張飛と別れ、驢に乗って楼桑村へ帰る。郷里では重税と兵徴発で家財も召使いも失われ、母は床下に隠したわずかな粟で暮らしていた。母子は再会を喜び、劉備はついに洛陽の銘茶を差し出し、翌朝、桃園に筵を敷いて清水で茶を点てようと張り切る。だが母は息子の佩刀が父の剣と違うのに気づき、事情を聞くや、剣を他人に与えたことを激しく叱って茶壺を川へ投げ捨てる。そして自分たちが景帝の血を引く中山靖王の末裔であり、あの剣は帝系のしるしだと明かし、「茶より剣、安穏より大望」と涙ながらに打擲する。劉備も土民根性を恥じて悔い改め、漢室再興と民の救済の志を固める。それから数年、表向きは蓆織りにいそしみつつ志を秘めたまま時を待つある春の日、桑の大樹の下へ山羊に酒壺を載せた不思議な老人が現れ、物語は次の出会いへ向かって動き出す。"""
+    "sangoku_2": {
+        "title": "三国志",
+        "file": "sangoku_2_text.json",
+        "read_start_chapter": 57,  # 読者が読む開始章
+        "read_end_chapter": 58,    # 読者が読む終了章
+        "summary_max_chapter": 56, # 忘却あらすじの対象章（この章まで）
+        "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "ranpo": {
         "title": "吸血鬼",
-        "file": "ranpo_text.json",
-        "summary": """物語は、塩原温泉での奇妙な「毒薬決闘」から始まります。倭文子を巡って青年三谷と画家岡田が致死量入りの杯を選び合い、結局は三谷が岡田の毒の杯を叩き落として勝負はうやむやになる。この直後、倭文子と三谷は相思相愛となるが、岡田は不気味な死体写真を残して自殺し、同じ宿には唇のない老人蛭田も現れて、のぞき見や水死体の発見など不吉な影を落とす。東京へ戻ると、倭文子は大金持ち畑柳未亡人で、息子の茂がチンドン屋に誘拐され、電話で十万円を要求される。三谷が女装して上野で身代金受け渡しに挑むが、出て来たのは乞食の子供と別人の老人だけで、同時に倭文子自身も偽の三谷の手紙で呼び出され、青山の空き家の地下室に監禁されて唇なし男に責められる。さらに畑柳邸では謎の来客小川が仏像だらけの書斎で刺殺され、死体が密室から消える事件が起こり、庭では女中が塀の上の骸骨顔の怪物を目撃。ここで三谷は素人探偵明智を訪ね、岡田＝唇なし男ではと推理するが、明智は青山の怪屋のマンホール抜け穴や天井裏の隠れ場所を暴き、地下室から倭文子と茂を救出するものの、犯人を取り逃がす。その後、代々木の岡田のアトリエで裸女の群像石膏像を砕くと中から三体の女死体が出て、ろう仮面の犯人からの警告も届く。国技館の菊人形では、文代が配電室に誘い込まれるが機転で脱出し、風船男が空へ逃げて海上で焼け死んだかに見える。事件はさらに、畑柳が実は獄中死を装い唇のない怪物として天井裏に潜んでいたこと、小川殺しや宝石隠匿の謎が、長い「舞台再現」の芝居で解き明かされる。だが真の黒幕は三谷こと谷山三郎で、兄の失恋死の復讐と畑柳家の宝石目当てに、岡田や小説家園田まで手にかけていたと判明する。彼は倭文子を棺に隠して火葬場へ送り、さらに製氷工場で氷の花に閉じこめようとするが、そこは明智が蝋人形とすり替えて救出。しかし最後に谷山は畑柳邸の新しい長椅子の中に身を潜めたまま倭文子を背後から刺し、自らも椅子の内部で自殺し、敵同士だった二人が手を握り合った姿で発見されて物語は終わります。"""
+        "file": "ranpo_text_ruby.json",
+        "read_start_chapter": 11,  # 読者が読む開始章
+        "read_end_chapter": 12,    # 読者が読む終了章
+        "summary_max_chapter": 10, # 忘却あらすじの対象章（この章まで）
+        "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
-    "novel5": {
-        "title": "仮小説５",
-        "file": "novel5_text.json",
-        "summary": "これは仮の小説5の要約です。実際の小説データが用意されるまでのプレースホルダーテキストです。"
+    "texhnical_area": {
+        "title": "テクニカル・エリア",
+        "file": "texhnical_area_text.json",
+        "read_start_chapter": 44,  # 読者が読む開始章
+        "read_end_chapter": 45,    # 読者が読む終了章
+        "summary_max_chapter": 43, # 忘却あらすじの対象章（この章まで）
+        "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
+    },
+    "online_utyu": {
+        "title": "銀河大戦～オンラインゲームで優勝した結果、宇宙艦隊司令長官に任命されました～",
+        "file": "online_utyu_text.json",
+        "read_start_chapter": 23,  # 読者が読む開始章
+        "read_end_chapter": 24,    # 読者が読む終了章
+        "summary_max_chapter": 22, # 忘却あらすじの対象章（この章まで）
+        "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     }
 }
 
@@ -1454,7 +1469,14 @@ elif st.session_state["authentication_status"]:
         if int(st.session_state.user_number) == 0:
             summary_text = "これは練習です。"
         else:
-            summary_text = current_novel["summary"]
+            # 忘却あらすじをファイルから読み込む
+            summary_file = Path("forgetting_texts") / current_novel_key / "500chars_pattern1.txt"
+            if summary_file.exists():
+                with open(summary_file, "r", encoding="utf-8") as f:
+                    summary_text = f.read()
+            else:
+                # ファイルが存在しない場合はフォールバック
+                summary_text = current_novel.get("summary", "[あらすじが生成されていません。generate_forgetting_text.pyを実行してください]")
 
         st.markdown(
             f"""
@@ -1665,24 +1687,51 @@ elif st.session_state["authentication_status"]:
                 return []
 
     @st.cache_data
-    def prepare_pages(demo_mode: bool, start_page: int, novel_file: str = "shadow_text.json"):
-        """ページデータを準備（キャッシュ）"""
+    def prepare_pages(demo_mode: bool, start_page: int, novel_file: str = "shadow_text.json",
+                      read_start_chapter: int = None, read_end_chapter: int = None):
+        """
+        ページデータを準備（キャッシュ）
+
+        Args:
+            demo_mode: デモモードかどうか
+            start_page: 旧来の開始ページ（デモモードで使用）
+            novel_file: 小説ファイル名
+            read_start_chapter: 読者が読む開始章番号（1-indexed）
+            read_end_chapter: 読者が読む終了章番号（1-indexed）
+        """
         story_sections = load_story(demo_mode, novel_file)
         # story_sectionsをそのまま返す（辞書形式）
         pages_all = story_sections
+
+        # 読む章を指定する場合（本番モード）
+        if not demo_mode and read_start_chapter is not None and read_end_chapter is not None:
+            # 1-indexedの章番号を0-indexedに変換してスライス
+            read_sections = story_sections[read_start_chapter - 1:read_end_chapter]
+        else:
+            # デモモードまたは章指定がない場合は従来通り
+            read_sections = story_sections[start_page:]
+
         # ルビをHTML形式に変換して表示用テキストを作成
         pages_ui_formatted = [f"【{sec['section']}章】 {sec['title']}\n\n{convert_ruby_to_html(sec['text'])}"
-                              for sec in story_sections[start_page:]]
+                              for sec in read_sections]
         return pages_all, pages_ui_formatted, len(pages_ui_formatted), len(pages_all)
 
-    # 現在選択されている小説のファイルを取得
+    # 現在選択されている小説のファイルと章情報を取得
     if st.session_state.novels_selection_completed and st.session_state.selected_novels:
         current_novel_key = st.session_state.selected_novels[st.session_state.current_novel_index]
-        current_novel_file = NOVEL_CATALOG[current_novel_key]["file"]
+        current_novel_config = NOVEL_CATALOG[current_novel_key]
+        current_novel_file = current_novel_config["file"]
+        read_start_chapter = current_novel_config.get("read_start_chapter")
+        read_end_chapter = current_novel_config.get("read_end_chapter")
     else:
         current_novel_file = NOVEL_FILE  # デフォルト
+        read_start_chapter = None
+        read_end_chapter = None
 
-    pages_all, pages_ui, total_ui_pages, total_pages = prepare_pages(DEMO_MODE, START_PAGE, current_novel_file)
+    pages_all, pages_ui, total_ui_pages, total_pages = prepare_pages(
+        DEMO_MODE, START_PAGE, current_novel_file,
+        read_start_chapter, read_end_chapter
+    )
 
     # =================================================
     #  プロンプトキャッシュのウォームアップ（初回のみ）
