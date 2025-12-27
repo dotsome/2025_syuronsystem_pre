@@ -62,9 +62,9 @@ NOVEL_CATALOG = {
     "shadow": {
         "title": "影の実力者になりたくて！",
         "file": "shadow_text.json",
-        "read_start_chapter": 25,  # 読者が読む開始章
-        "read_end_chapter": 26,    # 読者が読む終了章
-        "summary_max_chapter": 24, # 忘却あらすじの対象章（この章まで）
+        "read_start_chapter": 31,  # 読者が読む開始章
+        "read_end_chapter": 32,    # 読者が読む終了章
+        "summary_max_chapter": 30, # 忘却あらすじの対象章（この章まで）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "sangoku_2": {

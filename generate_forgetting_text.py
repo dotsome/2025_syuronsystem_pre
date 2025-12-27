@@ -118,7 +118,7 @@ def main():
     novels = {
         "shadow": {
             "file": "shadow_text.json",
-            "max_chapters": 24  # 25-26章を読むので、24章までのあらすじ
+            "max_chapters": 30  # 31-32章を読むので、30章までのあらすじ
         },
         "sangoku_2": {
             "file": "sangoku_2_text.json",
