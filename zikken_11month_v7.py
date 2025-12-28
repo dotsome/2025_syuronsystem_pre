@@ -2529,6 +2529,22 @@ elif st.session_state["authentication_status"]:
         # 現在の章番号を更新
         st.session_state.current_chapter = current_chapter_num
 
+        # 最終章の最終ページに到達した場合のアンケート表示
+        # （章が変わらないので上記の処理ではカバーできない）
+        is_last_page = (st.session_state.ui_page >= total_ui_pages - 1)
+        is_last_chapter = (current_chapter_num == current_novel_config["read_end_chapter"])
+
+        if is_last_page and is_last_chapter:
+            # 最終章のIDとタイトルを取得
+            final_chapter_id = f"chapter_{current_chapter_num}"
+            final_chapter_title = f"{current_chapter_num}章"
+
+            # まだ評価していない場合、アンケート表示フラグを立てる
+            if final_chapter_id not in st.session_state.evaluated_chapters:
+                st.session_state.pending_chapter_evaluation = True
+                st.session_state.pending_chapter_id = final_chapter_id
+                st.session_state.pending_chapter_title = final_chapter_title
+
         st.markdown(
             f"""
             <div style="
