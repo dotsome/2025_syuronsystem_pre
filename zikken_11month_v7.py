@@ -190,6 +190,50 @@ COMPARISON_EVALUATION_QUESTION = {
     "scale_max": "人物関係図の方がはるかに役立った"
 }
 
+# 章読了時の評価設問
+# M1,3,4,5のみ（質問応答を使用するモード）の設問
+CHAPTER_END_QA_QUESTION = {
+    "id": "chapter_spoiler",
+    "text": "回答の内容に、まだ読んでいない先の展開（ネタバレ）がどの程度含まれていましたか？",
+    "scale_min": "全く含まれていなかった",
+    "scale_max": "明らかに含まれていた"
+}
+
+# 全モード共通の章読了時評価設問
+CHAPTER_END_QUESTIONS = [
+    {
+        "id": "chapter_understanding",
+        "text": "この章の物語の状況（誰が何をしているか）をどの程度理解できましたか？",
+        "scale_min": "全く理解できなかった",
+        "scale_max": "完全に理解できた"
+    },
+    {
+        "id": "chapter_relationships",
+        "text": "登場人物同士の関係性をどの程度把握できましたか？",
+        "scale_min": "全く把握できなかった",
+        "scale_max": "完全に把握できた"
+    },
+    {
+        "id": "chapter_cognitive_load",
+        "text": "この章を読んで内容を理解するために、どのくらい頭を使う負担を感じましたか？",
+        "scale_min": "全く負担なし",
+        "scale_max": "非常に高い負担",
+        "scale_type": "9point"  # 9段階評価
+    },
+    {
+        "id": "chapter_anxiety",
+        "text": "この章を読んでいる間、「重要な情報を忘れているのではないか」という不安をどの程度感じましたか？",
+        "scale_min": "全く感じなかった",
+        "scale_max": "非常に強く感じた"
+    },
+    {
+        "id": "chapter_immersion",
+        "text": "この章の内容にどの程度没入できましたか？",
+        "scale_min": "全く没入できなかった",
+        "scale_max": "非常に没入できた"
+    }
+]
+
 # =================================================
 #                🔸  ルビ変換関数
 # =================================================
@@ -1221,6 +1265,23 @@ def export_evaluations_to_csv():
                 rating
             ])
 
+    # 章読了時の評価データを書き込み
+    for eval_data in st.session_state.chapter_evaluations:
+        chapter_id = eval_data.get("chapter_id", "")
+        chapter_title = eval_data.get("chapter_title", "")
+        timestamp = eval_data.get("timestamp", "")
+        ratings = eval_data.get("ratings", {})
+
+        for q_id, rating in ratings.items():
+            writer.writerow([
+                "章読了",
+                chapter_id,
+                chapter_title,  # 質問番号の代わりに章タイトル
+                timestamp,
+                q_id,
+                rating
+            ])
+
     return output.getvalue()
 
 
@@ -1313,6 +1374,101 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger,
             # 評価送信完了後、画面を再描画して完了メッセージを表示
             st.rerun()
 
+
+def show_chapter_end_evaluation(chapter_id, chapter_title, has_qa, logger):
+    """
+    章読了時の評価フォームを表示
+
+    Args:
+        chapter_id: 章ID（例: "chapter_31"）
+        chapter_title: 章タイトル
+        has_qa: 質問応答機能がある場合True（M1,3,4,5）
+        logger: ロガーオブジェクト
+    """
+    st.markdown("---")
+    st.markdown(f"### 📝 章読了アンケート - {chapter_title}")
+    st.markdown("**この章を読み終えました。以下の項目に回答してください。**")
+
+    form_key = f"chapter_eval_{chapter_id}"
+
+    with st.form(key=form_key):
+        ratings = {}
+
+        # M1,3,4,5のみ: ネタバレ質問
+        if has_qa:
+            q = CHAPTER_END_QA_QUESTION
+            st.markdown(f"**{q['text']}**")
+            rating = st.slider(
+                label=f"{q['scale_min']} ← → {q['scale_max']}",
+                min_value=1,
+                max_value=7,
+                value=4,
+                step=1,
+                key=f"{form_key}_{q['id']}",
+                help=f"1: {q['scale_min']} ～ 7: {q['scale_max']}"
+            )
+            ratings[q['id']] = rating
+            st.markdown("")
+
+        # 全モード共通の質問
+        for q in CHAPTER_END_QUESTIONS:
+            st.markdown(f"**{q['text']}**")
+
+            # 9段階評価の場合
+            if q.get('scale_type') == '9point':
+                rating = st.slider(
+                    label=f"{q['scale_min']} ← → {q['scale_max']}",
+                    min_value=1,
+                    max_value=9,
+                    value=5,
+                    step=1,
+                    key=f"{form_key}_{q['id']}",
+                    help=f"1: {q['scale_min']} ～ 9: {q['scale_max']}"
+                )
+            else:
+                # 7段階評価
+                rating = st.slider(
+                    label=f"{q['scale_min']} ← → {q['scale_max']}",
+                    min_value=1,
+                    max_value=7,
+                    value=4,
+                    step=1,
+                    key=f"{form_key}_{q['id']}",
+                    help=f"1: {q['scale_min']} ～ 7: {q['scale_max']}"
+                )
+            ratings[q['id']] = rating
+            st.markdown("")
+
+        submitted = st.form_submit_button("評価を送信", use_container_width=True)
+
+        if submitted:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # 評価データを作成
+            eval_data = {
+                "chapter_id": chapter_id,
+                "chapter_title": chapter_title,
+                "timestamp": timestamp,
+                "ratings": ratings
+            }
+
+            # session_stateに保存
+            st.session_state.chapter_evaluations.append(eval_data)
+            st.session_state.evaluated_chapters.add(chapter_id)
+            st.session_state.pending_chapter_evaluation = False
+
+            # ログに記録
+            logger.info(f"=== CHAPTER EVALUATION ===")
+            logger.info(f"chapter_id: {chapter_id}")
+            logger.info(f"chapter_title: {chapter_title}")
+            logger.info(f"timestamp: {timestamp}")
+            for q_id, rating in ratings.items():
+                logger.info(f"  {q_id}: {rating}")
+            logger.info("="*50)
+
+            # 評価送信完了後、画面を再描画
+            st.rerun()
+
 # =================================================
 #           Streamlit セッション初期化
 # =================================================
@@ -1344,6 +1500,12 @@ init_state("graph_evaluations", [])  # 図の評価データ: [{graph_id, questi
 init_state("answer_evaluations", [])  # 回答の評価データ: [{answer_id, question_id, timestamp, ratings}]
 init_state("evaluated_graphs", set())  # 評価済みの図のID（例: "graph_1"）
 init_state("evaluated_answers", set())  # 評価済みの回答のID（例: "answer_1"）
+init_state("chapter_evaluations", [])  # 章読了時の評価データ: [{chapter_id, timestamp, ratings}]
+init_state("evaluated_chapters", set())  # 評価済みの章のID（例: "chapter_31"）
+init_state("current_chapter", None)  # 現在読んでいる章番号
+init_state("pending_chapter_evaluation", False)  # 章読了アンケート表示待ち
+init_state("pending_chapter_id", "")  # 評価待ちの章ID
+init_state("pending_chapter_title", "")  # 評価待ちの章タイトル
 init_state("chat_log_downloaded", False)  # 詳細ログダウンロード済みフラグ
 init_state("evaluation_csv_downloaded", False)  # 評価データダウンロード済みフラグ
 
@@ -2346,6 +2508,24 @@ elif st.session_state["authentication_status"]:
         # pages_uiは表示用のフォーマット済みテキスト
         current_page_text = pages_ui[st.session_state.ui_page]
 
+        # 現在の章番号を取得
+        current_chapter_num = pages_all[real_page_index]["section"] if real_page_index < len(pages_all) else None
+
+        # 章が変わったかチェック（章読了アンケート表示のため）
+        if st.session_state.current_chapter is not None and current_chapter_num != st.session_state.current_chapter:
+            # 前の章のIDとタイトルを取得
+            prev_chapter_id = f"chapter_{st.session_state.current_chapter}"
+            prev_chapter_title = f"{st.session_state.current_chapter}章"
+
+            # まだ評価していない場合、アンケート表示フラグを立てる
+            if prev_chapter_id not in st.session_state.evaluated_chapters:
+                st.session_state.pending_chapter_evaluation = True
+                st.session_state.pending_chapter_id = prev_chapter_id
+                st.session_state.pending_chapter_title = prev_chapter_title
+
+        # 現在の章番号を更新
+        st.session_state.current_chapter = current_chapter_num
+
         st.markdown(
             f"""
             <div style="
@@ -2487,6 +2667,19 @@ elif st.session_state["authentication_status"]:
                             else:
                                 st.info(f"✅ 質問#{item['number']}の図の評価を送信しました")
 
+        # 章読了アンケート表示
+        if st.session_state.pending_chapter_evaluation:
+            # 質問応答機能の有無を判定（M1,3,4,5はTrue、M0,2はFalse）
+            mode_config = get_mode_config(EXPERIMENT_MODE, current_novel_config)
+            has_qa = mode_config.get("use_qa", False)
+
+            show_chapter_end_evaluation(
+                st.session_state.pending_chapter_id,
+                st.session_state.pending_chapter_title,
+                has_qa,
+                logger
+            )
+
         # ログダウンロードボタン
         st.markdown("---")
         if log_file.exists():
@@ -2547,6 +2740,13 @@ elif st.session_state["authentication_status"]:
                             st.session_state.answer_evaluations = []
                             st.session_state.evaluated_graphs = set()
                             st.session_state.evaluated_answers = set()
+                            # 章読了アンケートデータもリセット
+                            st.session_state.chapter_evaluations = []
+                            st.session_state.evaluated_chapters = set()
+                            st.session_state.current_chapter = None
+                            st.session_state.pending_chapter_evaluation = False
+                            st.session_state.pending_chapter_id = ""
+                            st.session_state.pending_chapter_title = ""
                             # ダウンロードフラグもリセット
                             st.session_state.chat_log_downloaded = False
                             st.session_state.evaluation_csv_downloaded = False
