@@ -79,7 +79,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 31,  # 読者が読む開始章
         "read_end_chapter": 32,    # 読者が読む終了章
         "summary_max_chapter": 30, # 忘却あらすじの対象章（この章まで）
-        "context_range_mode3": 41, # モード3のコンテキスト範囲（読み始め章+5万文字程度、最終章）
+        "context_range_mode3": 41, # モード3のコンテキスト範囲（読み始め章+4万文字程度、40,687文字、最終章）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "sangoku_2": {
@@ -88,7 +88,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 57,  # 読者が読む開始章
         "read_end_chapter": 58,    # 読者が読む終了章
         "summary_max_chapter": 56, # 忘却あらすじの対象章（この章まで）
-        "context_range_mode3": 94, # モード3のコンテキスト範囲（読み始め章+5万文字程度）
+        "context_range_mode3": 86, # モード3のコンテキスト範囲（読み始め章+4万文字程度、40,523文字）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "ranpo": {
@@ -97,7 +97,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 11,  # 読者が読む開始章
         "read_end_chapter": 12,    # 読者が読む終了章
         "summary_max_chapter": 10, # 忘却あらすじの対象章（この章まで）
-        "context_range_mode3": 18, # モード3のコンテキスト範囲（読み始め章+5万文字程度）
+        "context_range_mode3": 17, # モード3のコンテキスト範囲（読み始め章+4万文字程度、46,038文字）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "texhnical_area": {
@@ -106,7 +106,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 44,  # 読者が読む開始章
         "read_end_chapter": 45,    # 読者が読む終了章
         "summary_max_chapter": 43, # 忘却あらすじの対象章（この章まで）
-        "context_range_mode3": 66, # モード3のコンテキスト範囲（読み始め章+5万文字程度、最終章）
+        "context_range_mode3": 64, # モード3のコンテキスト範囲（読み始め章+4万文字程度、40,219文字）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "online_utyu": {
@@ -115,7 +115,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 23,  # 読者が読む開始章
         "read_end_chapter": 24,    # 読者が読む終了章
         "summary_max_chapter": 22, # 忘却あらすじの対象章（この章まで）
-        "context_range_mode3": 39, # モード3のコンテキスト範囲（読み始め章+5万文字程度）
+        "context_range_mode3": 35, # モード3のコンテキスト範囲（読み始め章+4万文字程度、40,348文字）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     }
 }
