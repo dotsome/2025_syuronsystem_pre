@@ -35,7 +35,7 @@ st.set_page_config(page_title="人物関係想起システム",
 # 2: モード2「質問を送信するだけのモード（システムは応答も何も行わない）」
 # 3: モード3「Y章までの情報を使い関係図や質問応答を行う，読者はX章以降を読む」
 # 4: モード4「X-1章までの情報を使い質問応答を行う（関係図は生成しない），読者はX章以降を読む」
-# 5: モード5「X-1章までの情報を使い関係図や質問応答を行う，関係図作成でmainの人物は特定せず全体の人物関係図を出力する，読者はX章以降を読む」
+# 5: モード5「X-1章までの情報を使い関係図や質問応答を行う，関係図は全体の人物関係図を出力し質問の中心人物を強調表示する，読者はX章以降を読む」
 
 # 実験設定
 X = 30  # 読者が読み始める章
@@ -126,49 +126,69 @@ NOVEL_FILE = "shadow_text.json"
 # =================================================
 #                🔸  評価設問の定義
 # =================================================
-# 図に対する評価設問（後から追加可能）
-GRAPH_EVALUATION_QUESTIONS = [
-    {
-        "id": "graph_q1",
-        "text": "この人物関係図は理解しやすかった",
-        "scale_min": "全くそう思わない",
-        "scale_max": "非常にそう思う"
-    },
-    {
-        "id": "graph_q2",
-        "text": "この人物関係図は物語の理解に役立った",
-        "scale_min": "全くそう思わない",
-        "scale_max": "非常にそう思う"
-    },
-    {
-        "id": "graph_q3",
-        "text": "この人物関係図は見やすかった",
-        "scale_min": "全くそう思わない",
-        "scale_max": "非常にそう思う"
-    }
-]
-
-# 回答文に対する評価設問（後から追加可能）
+# 回答テキストに対する評価設問（M1,3,4,5で使用）
 ANSWER_EVALUATION_QUESTIONS = [
     {
         "id": "answer_q1",
-        "text": "この回答は質問に適切に答えていた",
-        "scale_min": "全くそう思わない",
-        "scale_max": "非常にそう思う"
+        "text": "提示された回答テキストは、忘れていた内容を思い出すのにどの程度役立ちましたか？",
+        "scale_min": "全く役立たなかった",
+        "scale_max": "非常に役立った"
     },
     {
         "id": "answer_q2",
-        "text": "この回答は理解しやすかった",
-        "scale_min": "全くそう思わない",
-        "scale_max": "非常にそう思う"
+        "text": "提示された回答テキストの情報量はどうでしたか？",
+        "scale_min": "非常に少なかった",
+        "scale_max": "非常に多かった"
     },
     {
         "id": "answer_q3",
-        "text": "この回答は物語の理解に役立った",
-        "scale_min": "全くそう思わない",
-        "scale_max": "非常にそう思う"
+        "text": "提示された回答テキストに含まれる用語や表現は理解しやすかったですか？",
+        "scale_min": "全く理解できない",
+        "scale_max": "非常に理解しやすい"
     }
 ]
+
+# 人物関係図に対する評価設問（M1,3,5で使用）
+GRAPH_EVALUATION_QUESTIONS = [
+    {
+        "id": "graph_q1",
+        "text": "提示された人物関係図は、人物同士の関係を理解するのにどの程度役立ちましたか？",
+        "scale_min": "全く役立たなかった",
+        "scale_max": "非常に役立った"
+    },
+    {
+        "id": "graph_q2",
+        "text": "人物関係図に表示されている人物の数はどうでしたか？",
+        "scale_min": "非常に少なかった",
+        "scale_max": "非常に多かった"
+    },
+    {
+        "id": "graph_q3",
+        "text": "人物関係図に表示されている関係性のラベル（矢印の説明文）は、質問内容に対して適切でしたか？",
+        "scale_min": "全く適切でない",
+        "scale_max": "非常に適切"
+    },
+    {
+        "id": "graph_q4",
+        "text": "人物関係図の視認性はどうでしたか？",
+        "scale_min": "非常に見にくい",
+        "scale_max": "非常に見やすい"
+    },
+    {
+        "id": "graph_q5",
+        "text": "人物関係図に表示されている情報量はどうでしたか？",
+        "scale_min": "非常に少なかった",
+        "scale_max": "非常に多かった"
+    }
+]
+
+# 比較質問（M1,3,5で図の評価後に追加）
+COMPARISON_EVALUATION_QUESTION = {
+    "id": "comparison_q1",
+    "text": "内容を思い出す上で、「回答テキスト」と「人物関係図」のどちらがより役立ちましたか？",
+    "scale_min": "回答テキストの方がはるかに役立った",
+    "scale_max": "人物関係図の方がはるかに役立った"
+}
 
 # =================================================
 #                🔸  ルビ変換関数
@@ -454,7 +474,8 @@ class GoogleSheetsLogger:
     def log_qa(self, user_name: str, user_number: str, q_num: int,
                question: str, answer: str, mermaid_code: str = None,
                svg_path: str = None, drive_uploader=None,
-               timestamp: str = None, chapter: str = None, chapter_title: str = None):
+               timestamp: str = None, chapter: str = None, chapter_title: str = None,
+               elapsed_time: str = None):
         """質問・回答・図をGoogle Sheetsに記録（レート制限対策付き）"""
         print(f"🔍 [DEBUG] log_qa() 呼び出し: Q{q_num}, svg_path={svg_path}, drive_uploader={'あり' if drive_uploader else 'なし'}")
 
@@ -504,7 +525,7 @@ class GoogleSheetsLogger:
             worksheet_name = f"QA_Logs_{user_number}"
             worksheet = self.get_or_create_worksheet(
                 worksheet_name,
-                headers=["Timestamp", "User", "Number", "Question#", "Chapter", "Chapter_Title",
+                headers=["Timestamp", "Elapsed_Time", "User", "Number", "Question#", "Chapter", "Chapter_Title",
                         "Question", "Answer", "Has_Diagram", "Mermaid_Code",
                         "SVG_Content", "SVG_Drive_Link"]
             )
@@ -512,6 +533,7 @@ class GoogleSheetsLogger:
             if worksheet:
                 row_data = [
                     timestamp if timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    elapsed_time if elapsed_time else "N/A",
                     user_name,
                     user_number,
                     str(q_num),
@@ -1202,7 +1224,7 @@ def export_evaluations_to_csv():
     return output.getvalue()
 
 
-def show_evaluation_form(eval_type, item_id, question_number, questions, logger):
+def show_evaluation_form(eval_type, item_id, question_number, questions, logger, comparison_question=None):
     """
     評価フォームを表示して結果を記録する
 
@@ -1212,10 +1234,10 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger)
         question_number: 質問番号
         questions: 評価設問のリスト
         logger: ロガーオブジェクト
+        comparison_question: 比較質問（図の評価時のみ使用、オプション）
     """
     st.markdown("---")
     st.markdown("### 📝 評価アンケート")
-    st.markdown("以下の項目について評価してください（1: 全くそう思わない ～ 7: 非常にそう思う）")
     st.markdown("**⚠️ 全ての項目に回答してから送信してください**")
 
     # 一意なフォームキーを生成
@@ -1226,34 +1248,40 @@ def show_evaluation_form(eval_type, item_id, question_number, questions, logger)
 
         for q in questions:
             st.markdown(f"**{q['text']}**")
-            col1, col2, col3 = st.columns([1, 6, 1])
-
-            with col1:
-                st.caption(q['scale_min'])
-            with col2:
-                # 「未選択」を含むオプションを用意
-                rating = st.radio(
-                    label=q['id'],
-                    options=["未選択", 1, 2, 3, 4, 5, 6, 7],
-                    index=0,  # デフォルトは「未選択」
-                    horizontal=True,
-                    label_visibility="collapsed",
-                    key=f"{form_key}_{q['id']}"
-                )
-                ratings[q['id']] = rating
-            with col3:
-                st.caption(q['scale_max'])
+            # スライダーで省スペース化（1-7の範囲）
+            rating = st.slider(
+                label=f"{q['scale_min']} ← → {q['scale_max']}",
+                min_value=1,
+                max_value=7,
+                value=4,  # デフォルトは中央値
+                step=1,
+                key=f"{form_key}_{q['id']}",
+                help=f"1: {q['scale_min']} ～ 7: {q['scale_max']}"
+            )
+            ratings[q['id']] = rating
 
             st.markdown("")  # 空行を追加
 
-        submitted = st.form_submit_button("評価を送信")
+        # 比較質問がある場合（図の評価時）
+        if comparison_question:
+            st.markdown("---")
+            st.markdown(f"**{comparison_question['text']}**")
+            comparison_rating = st.slider(
+                label=f"{comparison_question['scale_min']} ← → {comparison_question['scale_max']}",
+                min_value=1,
+                max_value=7,
+                value=4,  # デフォルトは中央値（どちらも同程度）
+                step=1,
+                key=f"{form_key}_{comparison_question['id']}",
+                help=f"1: {comparison_question['scale_min']} / 4: どちらも同程度 / 7: {comparison_question['scale_max']}"
+            )
+            ratings[comparison_question['id']] = comparison_rating
+            st.markdown("")  # 空行を追加
+
+        submitted = st.form_submit_button("評価を送信", use_container_width=True)
 
         if submitted:
-            # 未選択の項目があるかチェック
-            unselected = [q['text'] for q in questions if ratings.get(q['id']) == "未選択"]
-            if unselected:
-                st.error(f"⚠️ 以下の項目が未選択です：\n" + "\n".join([f"- {text}" for text in unselected]))
-                st.stop()
+            # スライダーは必ず値が選択されているので、未選択チェックは不要
             # タイムスタンプを取得
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1303,6 +1331,7 @@ init_state("selected_novels",  [])  # 選択された小説のキーリスト（
 init_state("current_novel_index", 0)  # 現在進行中の小説インデックス（0または1）
 init_state("log_downloaded",   False)  # ログダウンロード完了フラグ
 init_state("summary_read",      False)  # 要約テキスト読了フラグ
+init_state("reading_start_time", None)  # 小説読み始め時刻（datetime object）
 init_state("question_number",  0)
 init_state("ui_page",          0)   # UI 上でのページ（0 … START_PAGE）
 init_state("processing_question", False)  # 質問処理中フラグ
@@ -2034,16 +2063,12 @@ elif st.session_state["authentication_status"]:
             user_number: ユーザー番号
             graph_type: グラフタイプ ("main_character" or "all_characters")
         """
-        # モード5の場合は中心人物を特定せず全体の人物関係図を生成
-        if graph_type == "all_characters":
-            main_focus = None
-            logger.info(f"[Q{q_num}] グラフタイプ: 全体の人物関係図")
-        else:
-            # ──────────────────────────
-            # Step 1: 質問の中心人物を特定（本文使用）
-            # Prompt Caching最適化: 本文を先頭に配置
-            # ──────────────────────────
-            who_prompt = f"""
+        # ──────────────────────────
+        # Step 1: 質問の中心人物を特定（本文使用）
+        # Prompt Caching最適化: 本文を先頭に配置
+        # モード5でも中心人物は特定する（全体図内で強調表示するため）
+        # ──────────────────────────
+        who_prompt = f"""
 物語の本文:
 {story_text}
 
@@ -2071,23 +2096,26 @@ elif st.session_state["authentication_status"]:
 回答:
 """
 
-            try:
-                res_who = openai_chat(
-                    "gpt-5.1",
-                    messages=[
-                        {"role": "system", "content": "質問の中心人物を特定します。"},
-                        {"role": "user", "content": who_prompt}
-                    ],
-                    temperature=0,
-                    log_label="中心人物特定"
-                )
-                # 複数行で返ってくる可能性があるため、全ての非空行を取得
-                main_focus_list = [line.strip() for line in res_who.choices[0].message.content.strip().splitlines() if line.strip()]
-                main_focus = ", ".join(main_focus_list) if main_focus_list else "主人公"
-            except Exception:
-                logger.exception("[Mermaid] main focus extraction error")
-                main_focus = "主人公"
+        try:
+            res_who = openai_chat(
+                "gpt-5.1",
+                messages=[
+                    {"role": "system", "content": "質問の中心人物を特定します。"},
+                    {"role": "user", "content": who_prompt}
+                ],
+                temperature=0,
+                log_label="中心人物特定"
+            )
+            # 複数行で返ってくる可能性があるため、全ての非空行を取得
+            main_focus_list = [line.strip() for line in res_who.choices[0].message.content.strip().splitlines() if line.strip()]
+            main_focus = ", ".join(main_focus_list) if main_focus_list else "主人公"
+        except Exception:
+            logger.exception("[Mermaid] main focus extraction error")
+            main_focus = "主人公"
 
+        if graph_type == "all_characters":
+            logger.info(f"[Q{q_num}] グラフタイプ: 全体の人物関係図（中心人物: {main_focus}）")
+        else:
             logger.info(f"[Q{q_num}] Main focus = {main_focus}")
 
         # ──────────────────────────
@@ -2095,15 +2123,16 @@ elif st.session_state["authentication_status"]:
         # ──────────────────────────
         # Prompt Caching最適化: 本文を先頭に配置
         if graph_type == "all_characters":
-            # モード5: 全体の人物関係図
+            # モード5: 全体の人物関係図（中心人物を強調）
             structured_prompt = f"""
 本文:
 {story_text}
 
 質問: {question}
+中心人物: {main_focus}
 
 タスク: 本文を読み、登場する全ての重要な人物の関係図を構造化データで出力してください。
-特定の中心人物を設定せず、物語全体の人物関係を網羅的に表現してください。
+物語全体の人物関係を網羅的に表現し、質問の中心人物（{main_focus}）が含まれている場合はcenter_personsに追加してください。
 
 【重要な注意事項】
 ❌ 絶対にやってはいけないこと:
@@ -2111,7 +2140,7 @@ elif st.session_state["authentication_status"]:
 - 実在しない人物を含めない
 
 ✅ 正しい例:
-- center_persons: ["ミナ"]  （複数の場合: ["ミナ", "アリオス"]、中心人物なしの場合: []）
+- center_persons: ["{main_focus.split(',')[0].strip()}"]  （中心人物が関係図に含まれる場合）
 - relationships: [
     {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
     {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
@@ -2119,17 +2148,19 @@ elif st.session_state["authentication_status"]:
 
 要件:
 1. 実在する登場人物のみ（具体的な人物名）
-2. 主要な関係のみ（全体図の場合は10-20人程度、中心人物がある場合は5-10人程度）
-3. 関係タイプ:
+2. 主要な関係のみ（全体図の場合は10-20人程度）
+3. {main_focus}が関係図に含まれている場合は、必ずcenter_personsに追加（強調表示のため）
+4. 関係タイプ:
    - directed: 一方向（上司→部下など）
    - bidirectional: 双方向（友人、仲間など）
    - dotted: 補助的な関係
-4. labelは簡潔に（5文字以内推奨）
-5. 同じ2人の間の関係は最大2本まで
+5. labelは簡潔に（5文字以内推奨）
+6. 同じ2人の間の関係は最大2本まで
 
 **絶対に守ること:**
 - 「不明」「主体」「客体」などの抽象的な名前は絶対に使用しない
 - 必ず実在する登場人物のみを使用する
+- {main_focus}が関係図に含まれる場合は必ずcenter_personsに追加する
 """
         else:
             # モード1,3,4: 中心人物を指定した関係図
@@ -2296,6 +2327,11 @@ elif st.session_state["authentication_status"]:
     # =================================================
     #                   レイアウト
     # =================================================
+    # 読み始め時刻の記録（小説ページが最初に表示された時点）
+    if st.session_state.reading_start_time is None:
+        st.session_state.reading_start_time = datetime.now()
+        logger.info(f"[Reading Start] 読み始め時刻を記録: {st.session_state.reading_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
     left_col, right_col = st.columns([5, 4])
 
     # -------------------------------------------------
@@ -2446,7 +2482,8 @@ elif st.session_state["authentication_status"]:
                         if "number" in item:
                             graph_id = f"graph_{item['number']}"
                             if graph_id not in st.session_state.evaluated_graphs:
-                                show_evaluation_form("graph", graph_id, item['number'], GRAPH_EVALUATION_QUESTIONS, logger)
+                                # 図の評価には比較質問も含める
+                                show_evaluation_form("graph", graph_id, item['number'], GRAPH_EVALUATION_QUESTIONS, logger, COMPARISON_EVALUATION_QUESTION)
                             else:
                                 st.info(f"✅ 質問#{item['number']}の図の評価を送信しました")
 
@@ -2501,6 +2538,7 @@ elif st.session_state["authentication_status"]:
                             st.session_state.chat_log_downloaded = False  # リセット
                             st.session_state.evaluation_csv_downloaded = False  # リセット
                             st.session_state.summary_read = False
+                            st.session_state.reading_start_time = None  # リセット（2作品目の読み始め時刻を記録するため）
                             st.session_state.question_number = 0
                             st.session_state.ui_page = 0
                             st.session_state.chat_history = []
@@ -2536,12 +2574,24 @@ elif st.session_state["authentication_status"]:
 
         # 質問時刻と現在の章番号を取得
         from datetime import datetime
-        question_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        question_datetime = datetime.now()
+        question_time = question_datetime.strftime("%Y-%m-%d %H:%M:%S")
         current_chapter = pages_all[real_page_index]["section"] if real_page_index < len(pages_all) else "N/A"
         current_title = pages_all[real_page_index]["title"] if real_page_index < len(pages_all) else "N/A"
 
-        # ログに質問時刻と章番号を記録
-        logger.info(f"[Q{q_num}] 時刻: {question_time} | 現在の章: {current_chapter} ({current_title}) | 質問: {user_input}")
+        # 読み始めからの経過時間を計算
+        elapsed_time_seconds = 0
+        elapsed_time_str = "N/A"
+        if st.session_state.reading_start_time is not None:
+            elapsed_delta = question_datetime - st.session_state.reading_start_time
+            elapsed_time_seconds = int(elapsed_delta.total_seconds())
+            # 分と秒で表示
+            elapsed_minutes = elapsed_time_seconds // 60
+            elapsed_secs = elapsed_time_seconds % 60
+            elapsed_time_str = f"{elapsed_minutes}分{elapsed_secs}秒"
+
+        # ログに質問時刻、章番号、経過時間を記録
+        logger.info(f"[Q{q_num}] 時刻: {question_time} | 経過時間: {elapsed_time_str} ({elapsed_time_seconds}秒) | 現在の章: {current_chapter} ({current_title}) | 質問: {user_input}")
 
         # 質問を履歴に追加
         st.session_state.chat_history.append(
@@ -2699,7 +2749,8 @@ elif st.session_state["authentication_status"]:
                     drive_uploader=drive_uploader,
                     timestamp=question_time,
                     chapter=current_chapter,
-                    chapter_title=current_title
+                    chapter_title=current_title,
+                    elapsed_time=elapsed_time_str
                 )
                 logger.info(f"[Q{q_num}] sheets_qa_logger.log_qa()呼び出し完了")
             else:
