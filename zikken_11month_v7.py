@@ -1459,7 +1459,6 @@ def show_chapter_end_evaluation(chapter_id, chapter_title, has_qa, logger):
             # session_stateに保存
             st.session_state.chapter_evaluations.append(eval_data)
             st.session_state.evaluated_chapters.add(chapter_id)
-            st.session_state.pending_chapter_evaluation = False
 
             # ログに記録
             logger.info(f"=== CHAPTER EVALUATION ===")
@@ -1507,9 +1506,6 @@ init_state("evaluated_answers", set())  # 評価済みの回答のID（例: "ans
 init_state("chapter_evaluations", [])  # 章読了時の評価データ: [{chapter_id, timestamp, ratings}]
 init_state("evaluated_chapters", set())  # 評価済みの章のID（例: "chapter_31"）
 init_state("current_chapter", None)  # 現在読んでいる章番号
-init_state("pending_chapter_evaluation", False)  # 章読了アンケート表示待ち
-init_state("pending_chapter_id", "")  # 評価待ちの章ID
-init_state("pending_chapter_title", "")  # 評価待ちの章タイトル
 init_state("chat_log_downloaded", False)  # 詳細ログダウンロード済みフラグ
 init_state("evaluation_csv_downloaded", False)  # 評価データダウンロード済みフラグ
 
@@ -2533,36 +2529,8 @@ elif st.session_state["authentication_status"]:
         # 現在の章番号を取得
         current_chapter_num = pages_all[real_page_index]["section"] if real_page_index < len(pages_all) else None
 
-        # 章が変わったかチェック（章読了アンケート表示のため）
-        if st.session_state.current_chapter is not None and current_chapter_num != st.session_state.current_chapter:
-            # 前の章のIDとタイトルを取得
-            prev_chapter_id = f"chapter_{st.session_state.current_chapter}"
-            prev_chapter_title = f"{st.session_state.current_chapter}章"
-
-            # まだ評価していない場合、アンケート表示フラグを立てる
-            if prev_chapter_id not in st.session_state.evaluated_chapters:
-                st.session_state.pending_chapter_evaluation = True
-                st.session_state.pending_chapter_id = prev_chapter_id
-                st.session_state.pending_chapter_title = prev_chapter_title
-
         # 現在の章番号を更新
         st.session_state.current_chapter = current_chapter_num
-
-        # 最終章の最終ページに到達した場合のアンケート表示
-        # （章が変わらないので上記の処理ではカバーできない）
-        is_last_page = (st.session_state.ui_page >= total_ui_pages - 1)
-        is_last_chapter = (current_chapter_num == current_novel_config["read_end_chapter"])
-
-        if is_last_page and is_last_chapter:
-            # 最終章のIDとタイトルを取得
-            final_chapter_id = f"chapter_{current_chapter_num}"
-            final_chapter_title = f"{current_chapter_num}章"
-
-            # まだ評価していない場合、アンケート表示フラグを立てる
-            if final_chapter_id not in st.session_state.evaluated_chapters:
-                st.session_state.pending_chapter_evaluation = True
-                st.session_state.pending_chapter_id = final_chapter_id
-                st.session_state.pending_chapter_title = final_chapter_title
 
         # ルビのスタイル設定（一度だけ定義）
         st.markdown(
@@ -2590,9 +2558,35 @@ elif st.session_state["authentication_status"]:
         is_processing = (st.session_state.processing_question or
                         st.session_state.submit_button_status in ["submitting", "processing"])
 
+        # 現在の章のアンケートが未回答かチェック
+        current_chapter_id = f"chapter_{current_chapter_num}"
+        current_chapter_evaluated = current_chapter_id in st.session_state.evaluated_chapters
+
+        # 次のページの章番号を取得（章が変わるかチェック）
+        next_page_index = real_page_index + 1
+        next_chapter_num = pages_all[next_page_index]["section"] if next_page_index < len(pages_all) else None
+        will_change_chapter = (next_chapter_num is not None and next_chapter_num != current_chapter_num)
+
+        # 次へボタンの無効化条件
+        # - 最後のページ
+        # - 処理中
+        # - 章が変わる場合で、現在の章のアンケート未回答
+        next_disabled = (st.session_state.ui_page >= total_ui_pages-1 or
+                        is_processing or
+                        (will_change_chapter and not current_chapter_evaluated))
+
+        # 前へボタンの無効化条件
+        # - 最初のページ
+        # - 処理中
+        # - 2章目（read_end_chapter）の場合は常に無効
+        is_second_chapter = (current_chapter_num == current_novel_config["read_end_chapter"])
+        prev_disabled = (st.session_state.ui_page == 0 or
+                        is_processing or
+                        is_second_chapter)
+
         with nav1:
             if st.button("◀ 前へ",
-                         disabled=(st.session_state.ui_page == 0 or is_processing),
+                         disabled=prev_disabled,
                          key="nav_prev"):
                 st.session_state.ui_page -= 1
                 st.rerun()
@@ -2600,8 +2594,12 @@ elif st.session_state["authentication_status"]:
             st.markdown(f"<center>ページ {real_page_index + 1} / {total_pages}</center>",
                         unsafe_allow_html=True)
         with nav3:
-            if st.button("次へ ▶",
-                         disabled=(st.session_state.ui_page >= total_ui_pages-1 or is_processing),
+            next_button_label = "次へ ▶"
+            if will_change_chapter and not current_chapter_evaluated:
+                next_button_label = "🔒 次の章へ（アンケート回答が必要です）"
+
+            if st.button(next_button_label,
+                         disabled=next_disabled,
                          key="nav_next"):
                 st.session_state.ui_page += 1
                 st.rerun()
@@ -2712,65 +2710,89 @@ elif st.session_state["authentication_status"]:
             # モード2: 質問機能なし
             user_input = None
 
-        # 章読了アンケート表示
-        if st.session_state.pending_chapter_evaluation:
-            # 質問応答機能の有無を判定（M1,3,4,5はTrue、M0,2はFalse）
-            mode_config = get_mode_config(EXPERIMENT_MODE, current_novel_config)
-            has_qa = mode_config.get("use_qa", False)
-
-            show_chapter_end_evaluation(
-                st.session_state.pending_chapter_id,
-                st.session_state.pending_chapter_title,
-                has_qa,
-                logger
-            )
-
-        # ログダウンロードボタン
+        # 章読了アンケート表示（常時表示・未回答の場合のみ）
         st.markdown("---")
-        if log_file.exists():
-            with open(log_file, "r", encoding="utf-8") as f:
-                log_content = f.read()
+        if current_chapter_num is not None:
+            chapter_id = f"chapter_{current_chapter_num}"
+            chapter_title = f"{current_chapter_num}章"
 
-            # 詳細ログダウンロードボタン
-            # ファイル名の構築: 1作品目は{user_name}_{番号}_chat_log.txt、2作品目は{user_name}_{番号}_chat_log_2.txt
-            if st.session_state.current_novel_index == 0:
-                log_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log.txt"
+            if chapter_id not in st.session_state.evaluated_chapters:
+                # 未評価の場合、アンケートを表示
+                mode_config = get_mode_config(EXPERIMENT_MODE, current_novel_config)
+                has_qa = mode_config.get("use_qa", False)
+
+                show_chapter_end_evaluation(
+                    chapter_id,
+                    chapter_title,
+                    has_qa,
+                    logger
+                )
             else:
-                log_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log_2.txt"
+                # 評価済みの場合、完了メッセージを表示
+                st.success(f"✅ {chapter_title}のアンケートは送信済みです")
 
-            log_button_clicked = st.download_button(
-                label="📥 詳細ログをダウンロード" if not st.session_state.chat_log_downloaded else "✅ 詳細ログをダウンロード済み",
-                data=log_content,
-                file_name=log_filename,
-                mime="text/plain",
-                use_container_width=True,
-                type="primary" if not st.session_state.chat_log_downloaded else "secondary",
-                key="download_log_button"
-            )
-            if log_button_clicked and not st.session_state.chat_log_downloaded:
-                st.session_state.chat_log_downloaded = True
-                st.rerun()
+        # 全章のアンケート完了チェック
+        # read_start_chapterからread_end_chapterまでの全章が評価済みかチェック
+        all_chapters_evaluated = True
+        required_chapters = range(current_novel_config["read_start_chapter"],
+                                 current_novel_config["read_end_chapter"] + 1)
+        for ch_num in required_chapters:
+            ch_id = f"chapter_{ch_num}"
+            if ch_id not in st.session_state.evaluated_chapters:
+                all_chapters_evaluated = False
+                break
 
-            # 評価データのダウンロードボタン（常に表示）
-            # ファイル名の構築: 1作品目は{user_name}_{番号}.csv、2作品目は{user_name}_{番号}_2.csv
-            if st.session_state.current_novel_index == 0:
-                csv_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}.csv"
-            else:
-                csv_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_2.csv"
+        # ログダウンロードボタン（全章アンケート完了後のみ表示）
+        st.markdown("---")
+        if all_chapters_evaluated:
+            if log_file.exists():
+                with open(log_file, "r", encoding="utf-8") as f:
+                    log_content = f.read()
 
-            evaluation_csv = export_evaluations_to_csv()
-            eval_button_clicked = st.download_button(
-                label="📊 評価データをダウンロード (CSV)" if not st.session_state.evaluation_csv_downloaded else "✅ 評価データをダウンロード済み (CSV)",
-                data=evaluation_csv,
-                file_name=csv_filename,
-                mime="text/csv",
-                use_container_width=True,
-                type="primary" if not st.session_state.evaluation_csv_downloaded else "secondary",
-                key="download_eval_button"
-            )
-            if eval_button_clicked and not st.session_state.evaluation_csv_downloaded:
-                st.session_state.evaluation_csv_downloaded = True
-                st.rerun()
+                # 詳細ログダウンロードボタン
+                # ファイル名の構築: 1作品目は{user_name}_{番号}_chat_log.txt、2作品目は{user_name}_{番号}_chat_log_2.txt
+                if st.session_state.current_novel_index == 0:
+                    log_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log.txt"
+                else:
+                    log_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log_2.txt"
+
+                log_button_clicked = st.download_button(
+                    label="📥 詳細ログをダウンロード" if not st.session_state.chat_log_downloaded else "✅ 詳細ログをダウンロード済み",
+                    data=log_content,
+                    file_name=log_filename,
+                    mime="text/plain",
+                    use_container_width=True,
+                    type="primary" if not st.session_state.chat_log_downloaded else "secondary",
+                    key="download_log_button"
+                )
+                if log_button_clicked and not st.session_state.chat_log_downloaded:
+                    st.session_state.chat_log_downloaded = True
+                    st.rerun()
+
+                # 評価データのダウンロードボタン
+                # ファイル名の構築: 1作品目は{user_name}_{番号}.csv、2作品目は{user_name}_{番号}_2.csv
+                if st.session_state.current_novel_index == 0:
+                    csv_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}.csv"
+                else:
+                    csv_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_2.csv"
+
+                evaluation_csv = export_evaluations_to_csv()
+                eval_button_clicked = st.download_button(
+                    label="📊 評価データをダウンロード (CSV)" if not st.session_state.evaluation_csv_downloaded else "✅ 評価データをダウンロード済み (CSV)",
+                    data=evaluation_csv,
+                    file_name=csv_filename,
+                    mime="text/csv",
+                    use_container_width=True,
+                    type="primary" if not st.session_state.evaluation_csv_downloaded else "secondary",
+                    key="download_eval_button"
+                )
+                if eval_button_clicked and not st.session_state.evaluation_csv_downloaded:
+                    st.session_state.evaluation_csv_downloaded = True
+                    st.rerun()
+        else:
+            # 全章のアンケートが完了していない場合、メッセージを表示
+            unevaluated_chapters = [ch for ch in required_chapters if f"chapter_{ch}" not in st.session_state.evaluated_chapters]
+            st.info(f"📝 ダウンロードには全章のアンケート回答が必要です。未回答: {', '.join([f'{ch}章' for ch in unevaluated_chapters])}")
 
             # 2作品目への遷移処理（1作品目完了後のみ表示）
             if st.session_state.novels_selection_completed and st.session_state.selected_novels:
@@ -2801,9 +2823,6 @@ elif st.session_state["authentication_status"]:
                             st.session_state.chapter_evaluations = []
                             st.session_state.evaluated_chapters = set()
                             st.session_state.current_chapter = None
-                            st.session_state.pending_chapter_evaluation = False
-                            st.session_state.pending_chapter_id = ""
-                            st.session_state.pending_chapter_title = ""
                             # ダウンロードフラグもリセット
                             st.session_state.chat_log_downloaded = False
                             st.session_state.evaluation_csv_downloaded = False
