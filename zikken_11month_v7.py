@@ -2794,49 +2794,47 @@ elif st.session_state["authentication_status"]:
             unevaluated_chapters = [ch for ch in required_chapters if f"chapter_{ch}" not in st.session_state.evaluated_chapters]
             st.info(f"📝 ダウンロードには全章のアンケート回答が必要です。未回答: {', '.join([f'{ch}章' for ch in unevaluated_chapters])}")
 
-            # 2作品目への遷移処理（1作品目完了後のみ表示）
-            if st.session_state.novels_selection_completed and st.session_state.selected_novels:
-                if st.session_state.current_novel_index == 0 and len(st.session_state.selected_novels) == 2:
-                    # 両方のダウンロードが完了したら2作品目へ進むボタンを表示
-                    both_downloads_completed = (st.session_state.chat_log_downloaded and
-                                               st.session_state.evaluation_csv_downloaded)
+        # 2作品目への遷移処理（1作品目完了後のみ表示）
+        if all_chapters_evaluated and st.session_state.novels_selection_completed and st.session_state.selected_novels:
+            if st.session_state.current_novel_index == 0 and len(st.session_state.selected_novels) == 2:
+                # 両方のダウンロードが完了したら2作品目へ進むボタンを表示
+                both_downloads_completed = (st.session_state.chat_log_downloaded and
+                                           st.session_state.evaluation_csv_downloaded)
 
-                    if both_downloads_completed:
-                        st.markdown("---")
-                        st.success("✅ 1作品目の実験が完了しました。2作品目に進んでください。")
-                        if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
-                            # 2作品目に進む
-                            st.session_state.current_novel_index = 1
-                            st.session_state.chat_log_downloaded = False  # リセット
-                            st.session_state.evaluation_csv_downloaded = False  # リセット
-                            st.session_state.summary_read = False
-                            st.session_state.reading_start_time = None  # リセット（2作品目の読み始め時刻を記録するため）
-                            st.session_state.question_number = 0
-                            st.session_state.ui_page = 0
-                            st.session_state.chat_history = []
-                            # 評価データもリセット
-                            st.session_state.graph_evaluations = []
-                            st.session_state.answer_evaluations = []
-                            st.session_state.evaluated_graphs = set()
-                            st.session_state.evaluated_answers = set()
-                            # 章読了アンケートデータもリセット
-                            st.session_state.chapter_evaluations = []
-                            st.session_state.evaluated_chapters = set()
-                            st.session_state.current_chapter = None
-                            # ダウンロードフラグもリセット
-                            st.session_state.chat_log_downloaded = False
-                            st.session_state.evaluation_csv_downloaded = False
-                            st.rerun()
-                elif st.session_state.current_novel_index == 1:
-                    # 両方のダウンロードが完了したら完了メッセージを表示
-                    both_downloads_completed = (st.session_state.chat_log_downloaded and
-                                               st.session_state.evaluation_csv_downloaded)
+                if both_downloads_completed:
+                    st.markdown("---")
+                    st.success("✅ 1作品目の実験が完了しました。2作品目に進んでください。")
+                    if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
+                        # 2作品目に進む
+                        st.session_state.current_novel_index = 1
+                        st.session_state.chat_log_downloaded = False  # リセット
+                        st.session_state.evaluation_csv_downloaded = False  # リセット
+                        st.session_state.summary_read = False
+                        st.session_state.reading_start_time = None  # リセット（2作品目の読み始め時刻を記録するため）
+                        st.session_state.question_number = 0
+                        st.session_state.ui_page = 0
+                        st.session_state.chat_history = []
+                        # 評価データもリセット
+                        st.session_state.graph_evaluations = []
+                        st.session_state.answer_evaluations = []
+                        st.session_state.evaluated_graphs = set()
+                        st.session_state.evaluated_answers = set()
+                        # 章読了アンケートデータもリセット
+                        st.session_state.chapter_evaluations = []
+                        st.session_state.evaluated_chapters = set()
+                        st.session_state.current_chapter = None
+                        # ダウンロードフラグもリセット
+                        st.session_state.chat_log_downloaded = False
+                        st.session_state.evaluation_csv_downloaded = False
+                        st.rerun()
+            elif st.session_state.current_novel_index == 1:
+                # 両方のダウンロードが完了したら完了メッセージを表示
+                both_downloads_completed = (st.session_state.chat_log_downloaded and
+                                           st.session_state.evaluation_csv_downloaded)
 
-                    if both_downloads_completed:
-                        st.markdown("---")
-                        st.success("🎉 2作品すべての実験が完了しました！お疲れ様でした。")
-        else:
-            st.info("ログファイルがまだ作成されていません")
+                if both_downloads_completed:
+                    st.markdown("---")
+                    st.success("🎉 2作品すべての実験が完了しました！お疲れ様でした。")
 
     # =================================================
     #               ユーザー入力処理
