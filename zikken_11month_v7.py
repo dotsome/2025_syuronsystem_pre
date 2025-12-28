@@ -2567,105 +2567,107 @@ elif st.session_state["authentication_status"]:
     # 右：質問入力 & 履歴 & 図 & ログ DL
     # -------------------------------------------------
     with right_col:
-        # 質問入力エリア
-        st.markdown("### 💬 質問")
-        user_input_text = st.text_area(
-            "この小説について質問してください",
-            height=100,
-            key="question_input",
-            placeholder="例: 主人公の名前は何ですか？"
-        )
+        # モード2では質問入力フォームを非表示（章読了アンケートのみ実施）
+        if EXPERIMENT_MODE != 2:
+            # 質問入力エリア
+            st.markdown("### 💬 質問")
+            user_input_text = st.text_area(
+                "この小説について質問してください",
+                height=100,
+                key="question_input",
+                placeholder="例: 主人公の名前は何ですか？"
+            )
 
-        # 完了状態の場合は1秒後にリセット
-        if st.session_state.submit_button_status == "completed":
-            time.sleep(1)
-            st.session_state.submit_button_status = "idle"
-            st.rerun()
+            # 完了状態の場合は1秒後にリセット
+            if st.session_state.submit_button_status == "completed":
+                time.sleep(1)
+                st.session_state.submit_button_status = "idle"
+                st.rerun()
 
-        # 送信ボタンの状態に応じてテキストと無効化を変更
-        button_status = st.session_state.submit_button_status
+            # 送信ボタンの状態に応じてテキストと無効化を変更
+            button_status = st.session_state.submit_button_status
 
-        if button_status == "submitting":
-            button_text = "⏳ 送信中です"
-            button_disabled = True
-        elif button_status == "processing":
-            button_text = "⚙️ 処理中です"
-            button_disabled = True
-        elif button_status == "completed":
-            button_text = "✅ 完了しました"
-            button_disabled = True
-        else:  # idle
-            if EXPERIMENT_MODE == 2:
-                button_text = "📤 送信（記録のみ）"
-            else:
+            if button_status == "submitting":
+                button_text = "⏳ 送信中です"
+                button_disabled = True
+            elif button_status == "processing":
+                button_text = "⚙️ 処理中です"
+                button_disabled = True
+            elif button_status == "completed":
+                button_text = "✅ 完了しました"
+                button_disabled = True
+            else:  # idle
                 button_text = "📤 送信"
-            button_disabled = False
+                button_disabled = False
 
-        send_button = st.button(
-            button_text,
-            type="primary",
-            use_container_width=True,
-            disabled=button_disabled
-        )
+            send_button = st.button(
+                button_text,
+                type="primary",
+                use_container_width=True,
+                disabled=button_disabled
+            )
 
-        # ボタンが押されたときまたは送信中の場合に処理
-        user_input = None
+            # ボタンが押されたときまたは送信中の場合に処理
+            user_input = None
 
-        # まず、送信中状態の場合は処理中に移行
-        if st.session_state.submit_button_status == "submitting" and st.session_state.pending_question:
-            # 送信中状態→処理中状態に移行してから質問を処理する
-            st.session_state.submit_button_status = "processing"
-            user_input = st.session_state.pending_question
-        elif send_button and user_input_text.strip():
-            # ボタンが押された→質問を保存して送信中状態にする
-            st.session_state.pending_question = user_input_text.strip()
-            st.session_state.submit_button_status = "submitting"
-            st.rerun()
+            # まず、送信中状態の場合は処理中に移行
+            if st.session_state.submit_button_status == "submitting" and st.session_state.pending_question:
+                # 送信中状態→処理中状態に移行してから質問を処理する
+                st.session_state.submit_button_status = "processing"
+                user_input = st.session_state.pending_question
+            elif send_button and user_input_text.strip():
+                # ボタンが押された→質問を保存して送信中状態にする
+                st.session_state.pending_question = user_input_text.strip()
+                st.session_state.submit_button_status = "submitting"
+                st.rerun()
 
-        st.markdown("---")
-        st.markdown("### 📝 質問・回答履歴")
-        chat_box = st.container(height=600)
+            st.markdown("---")
+            st.markdown("### 📝 質問・回答履歴")
+            chat_box = st.container(height=600)
 
-        with chat_box:
-            if not st.session_state.chat_history:
-                st.info("まだ質問がありません。左側の入力欄から質問してください。")
-            else:
-                for item in st.session_state.chat_history:
-                    if item["type"] == "question":
-                        st.markdown(
-                            f'<div style="background-color:var(--secondary-background-color);'
-                            f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
-                            f'border-left:4px solid #4CAF50;">'
-                            f'<b>質問:</b> {item["content"]}</div>',
-                            unsafe_allow_html=True)
-                    elif item["type"] == "answer":
-                        st.markdown(
-                            f'<div style="background-color:var(--secondary-background-color);'
-                            f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
-                            f'border-left:4px solid #2196F3;">'
-                            f'<b>回答:</b> {item["content"]}</div>',
-                            unsafe_allow_html=True)
+            with chat_box:
+                if not st.session_state.chat_history:
+                    st.info("まだ質問がありません。左側の入力欄から質問してください。")
+                else:
+                    for item in st.session_state.chat_history:
+                        if item["type"] == "question":
+                            st.markdown(
+                                f'<div style="background-color:var(--secondary-background-color);'
+                                f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
+                                f'border-left:4px solid #4CAF50;">'
+                                f'<b>質問:</b> {item["content"]}</div>',
+                                unsafe_allow_html=True)
+                        elif item["type"] == "answer":
+                            st.markdown(
+                                f'<div style="background-color:var(--secondary-background-color);'
+                                f'color:var(--text-color);padding:10px;border-radius:10px;margin:5px 0;'
+                                f'border-left:4px solid #2196F3;">'
+                                f'<b>回答:</b> {item["content"]}</div>',
+                                unsafe_allow_html=True)
 
-                        # 回答の評価フォームを表示（まだ評価されていない場合）
-                        if "number" in item:
-                            answer_id = f"answer_{item['number']}"
-                            if answer_id not in st.session_state.evaluated_answers:
-                                show_evaluation_form("answer", answer_id, item['number'], ANSWER_EVALUATION_QUESTIONS, logger)
-                            else:
-                                st.info(f"✅ 質問#{item['number']}の回答テキスト評価を送信しました")
+                            # 回答の評価フォームを表示（まだ評価されていない場合）
+                            if "number" in item:
+                                answer_id = f"answer_{item['number']}"
+                                if answer_id not in st.session_state.evaluated_answers:
+                                    show_evaluation_form("answer", answer_id, item['number'], ANSWER_EVALUATION_QUESTIONS, logger)
+                                else:
+                                    st.info(f"✅ 質問#{item['number']}の回答テキスト評価を送信しました")
 
-                    elif item["type"] == "image" and Path(item["path"]).exists():
-                        st.image(item["path"], caption=item["caption"],
-                                 width="stretch")
+                        elif item["type"] == "image" and Path(item["path"]).exists():
+                            st.image(item["path"], caption=item["caption"],
+                                     width="stretch")
 
-                        # 図の評価フォームを表示（まだ評価されていない場合）
-                        if "number" in item:
-                            graph_id = f"graph_{item['number']}"
-                            if graph_id not in st.session_state.evaluated_graphs:
-                                # 図の評価には比較質問も含める
-                                show_evaluation_form("graph", graph_id, item['number'], GRAPH_EVALUATION_QUESTIONS, logger, COMPARISON_EVALUATION_QUESTION)
-                            else:
-                                st.info(f"✅ 質問#{item['number']}の図の評価を送信しました")
+                            # 図の評価フォームを表示（まだ評価されていない場合）
+                            if "number" in item:
+                                graph_id = f"graph_{item['number']}"
+                                if graph_id not in st.session_state.evaluated_graphs:
+                                    # 図の評価には比較質問も含める
+                                    show_evaluation_form("graph", graph_id, item['number'], GRAPH_EVALUATION_QUESTIONS, logger, COMPARISON_EVALUATION_QUESTION)
+                                else:
+                                    st.info(f"✅ 質問#{item['number']}の図の評価を送信しました")
+        else:
+            # モード2: 質問機能なし
+            user_input = None
 
         # 章読了アンケート表示
         if st.session_state.pending_chapter_evaluation:
