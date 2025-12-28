@@ -252,8 +252,12 @@ def convert_ruby_to_html(text: str) -> str:
         '<ruby>後漢<rt>ごかん</rt></ruby>の<ruby>建寧<rt>けんねい</rt></ruby>'
     """
     # 青空文庫形式: 漢字《かんじ》 → HTML: <ruby>漢字<rt>かんじ</rt></ruby>
-    # 正規表現で《》内のルビを抽出し、HTMLに変換
-    pattern = r'([^《]+)《([^》]+)》'
+    # まず｜記法（明示的範囲指定）を処理: ｜範囲《ルビ》
+    text = re.sub(r'｜([^《]+)《([^》]+)》', r'<ruby>\1<rt>\2</rt></ruby>', text)
+
+    # 次に通常の記法を処理: 直前の漢字（連続する漢字のみ）にルビ
+    # 漢字の範囲: 一-龠（CJK統合漢字）、々（同の字点）、〆ヵヶ
+    pattern = r'([一-龠々〆ヵヶ]+)《([^》]+)》'
 
     def replace_ruby(match):
         kanji = match.group(1)
@@ -2547,6 +2551,15 @@ elif st.session_state["authentication_status"]:
 
         st.markdown(
             f"""
+            <style>
+                /* ルビのスタイル設定 */
+                ruby {{
+                    white-space: nowrap;  /* ルビ内での改行を防ぐ */
+                }}
+                rt {{
+                    font-size: 0.5em;  /* ルビ文字のサイズ */
+                }}
+            </style>
             <div style="
                 padding:20px;border-radius:10px;
                 background-color:var(--background-color);
