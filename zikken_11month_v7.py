@@ -1837,8 +1837,11 @@ elif st.session_state["authentication_status"]:
     user_dir = base_dir / f"zikken_{st.session_state.user_name}_{st.session_state.session_timestamp}"
     user_dir.mkdir(exist_ok=True)
 
-    # ログファイル名に現在の小説と実験ナンバーを含める
-    log_file = user_dir / f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_{st.session_state.session_timestamp}_chat_log.txt"
+    # ログファイル名: 1作品目は{user_name}_{番号}_chat_log.txt、2作品目は{user_name}_{番号}_chat_log_2.txt
+    if st.session_state.current_novel_index == 0:
+        log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log.txt"
+    else:
+        log_file = user_dir / f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log_2.txt"
     logger   = _build_logger(log_file)
     logger.info("--- Session started ---")
     logger.info(f"実験モード: {EXPERIMENT_MODE}")
@@ -2689,10 +2692,16 @@ elif st.session_state["authentication_status"]:
                 log_content = f.read()
 
             # 詳細ログダウンロードボタン
+            # ファイル名の構築: 1作品目は{user_name}_{番号}_chat_log.txt、2作品目は{user_name}_{番号}_chat_log_2.txt
+            if st.session_state.current_novel_index == 0:
+                log_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log.txt"
+            else:
+                log_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_chat_log_2.txt"
+
             log_button_clicked = st.download_button(
                 label="📥 詳細ログをダウンロード" if not st.session_state.chat_log_downloaded else "✅ 詳細ログをダウンロード済み",
                 data=log_content,
-                file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_chat_log.txt",
+                file_name=log_filename,
                 mime="text/plain",
                 use_container_width=True,
                 type="primary" if not st.session_state.chat_log_downloaded else "secondary",
@@ -2703,11 +2712,17 @@ elif st.session_state["authentication_status"]:
                 st.rerun()
 
             # 評価データのダウンロードボタン（常に表示）
+            # ファイル名の構築: 1作品目は{user_name}_{番号}.csv、2作品目は{user_name}_{番号}_2.csv
+            if st.session_state.current_novel_index == 0:
+                csv_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}.csv"
+            else:
+                csv_filename = f"{st.session_state.user_name}_{st.session_state.user_number_a}_2.csv"
+
             evaluation_csv = export_evaluations_to_csv()
             eval_button_clicked = st.download_button(
                 label="📊 評価データをダウンロード (CSV)" if not st.session_state.evaluation_csv_downloaded else "✅ 評価データをダウンロード済み (CSV)",
                 data=evaluation_csv,
-                file_name=f"{st.session_state.user_name}_{current_novel_key}_exp{current_experiment_number}_evaluations.csv",
+                file_name=csv_filename,
                 mime="text/csv",
                 use_container_width=True,
                 type="primary" if not st.session_state.evaluation_csv_downloaded else "secondary",
