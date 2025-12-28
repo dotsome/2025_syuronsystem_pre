@@ -1936,7 +1936,8 @@ elif st.session_state["authentication_status"]:
             read_sections = story_sections[start_page:]
 
         # ルビをHTML形式に変換して表示用テキストを作成
-        pages_ui_formatted = [f"【{sec['section']}章】 {sec['title']}\n\n{convert_ruby_to_html(sec['text'])}"
+        # 章タイトルもHTMLタグでラップして構造を明確にする
+        pages_ui_formatted = [f"<div style='font-weight:bold; margin-bottom:1em;'>【{sec['section']}章】 {sec['title']}</div>{convert_ruby_to_html(sec['text'])}"
                               for sec in read_sections]
         return pages_all, pages_ui_formatted, len(pages_ui_formatted), len(pages_all)
 
@@ -2549,17 +2550,24 @@ elif st.session_state["authentication_status"]:
                 st.session_state.pending_chapter_id = final_chapter_id
                 st.session_state.pending_chapter_title = final_chapter_title
 
+        # ルビのスタイル設定（一度だけ定義）
         st.markdown(
-            f"""
+            """
             <style>
                 /* ルビのスタイル設定 */
-                ruby {{
+                ruby {
                     white-space: nowrap;  /* ルビ内での改行を防ぐ */
-                }}
-                rt {{
+                }
+                rt {
                     font-size: 0.5em;  /* ルビ文字のサイズ */
-                }}
+                }
             </style>
+            """, unsafe_allow_html=True
+        )
+
+        # 本文表示
+        st.markdown(
+            f"""
             <div style="
                 padding:20px;border-radius:10px;
                 background-color:var(--background-color);
