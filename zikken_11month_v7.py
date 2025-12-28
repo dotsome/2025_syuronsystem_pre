@@ -42,15 +42,29 @@ X = 30  # 読者が読み始める章
 Y = 40  # モード3で使用する最大章数
 
 # モード別機能フラグを返す関数
-def get_mode_config(experiment_mode: int):
-    """実験モード番号から設定を取得"""
+def get_mode_config(experiment_mode: int, novel_config: dict = None):
+    """
+    実験モード番号から設定を取得
+
+    Args:
+        experiment_mode: 実験モード番号（0-5）
+        novel_config: 小説設定（NOVEL_CATALOGの1つのエントリ、オプション）
+    """
+    # 小説設定からコンテキスト範囲を取得（なければデフォルト値を使用）
+    if novel_config:
+        context_mode1 = novel_config.get("read_start_chapter", X) - 1
+        context_mode3 = novel_config.get("context_range_mode3", Y)
+    else:
+        context_mode1 = X - 1
+        context_mode3 = Y
+
     MODE_CONFIG = {
-        0: {"use_graph": True,  "use_qa": True,  "context_range": "all",    "graph_type": "main_character"},  # デモ
-        1: {"use_graph": True,  "use_qa": True,  "context_range": X-1,      "graph_type": "main_character"},  # モード1
-        2: {"use_graph": False, "use_qa": False, "context_range": 0,        "graph_type": None},              # モード2
-        3: {"use_graph": True,  "use_qa": True,  "context_range": Y,        "graph_type": "main_character"},  # モード3
-        4: {"use_graph": False, "use_qa": True,  "context_range": X-1,      "graph_type": None},              # モード4
-        5: {"use_graph": True,  "use_qa": True,  "context_range": X-1,      "graph_type": "all_characters"},  # モード5
+        0: {"use_graph": True,  "use_qa": True,  "context_range": "all",        "graph_type": "main_character"},  # デモ
+        1: {"use_graph": True,  "use_qa": True,  "context_range": context_mode1, "graph_type": "main_character"},  # モード1
+        2: {"use_graph": False, "use_qa": False, "context_range": 0,             "graph_type": None},              # モード2
+        3: {"use_graph": True,  "use_qa": True,  "context_range": context_mode3, "graph_type": "main_character"},  # モード3
+        4: {"use_graph": False, "use_qa": True,  "context_range": context_mode1, "graph_type": None},              # モード4
+        5: {"use_graph": True,  "use_qa": True,  "context_range": context_mode1, "graph_type": "all_characters"},  # モード5
     }
     return MODE_CONFIG.get(experiment_mode, MODE_CONFIG[1])  # デフォルトはモード1
 
@@ -65,6 +79,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 31,  # 読者が読む開始章
         "read_end_chapter": 32,    # 読者が読む終了章
         "summary_max_chapter": 30, # 忘却あらすじの対象章（この章まで）
+        "context_range_mode3": 41, # モード3のコンテキスト範囲（読み始め章+5万文字程度、最終章）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "sangoku_2": {
@@ -73,6 +88,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 57,  # 読者が読む開始章
         "read_end_chapter": 58,    # 読者が読む終了章
         "summary_max_chapter": 56, # 忘却あらすじの対象章（この章まで）
+        "context_range_mode3": 94, # モード3のコンテキスト範囲（読み始め章+5万文字程度）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "ranpo": {
@@ -81,6 +97,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 11,  # 読者が読む開始章
         "read_end_chapter": 12,    # 読者が読む終了章
         "summary_max_chapter": 10, # 忘却あらすじの対象章（この章まで）
+        "context_range_mode3": 18, # モード3のコンテキスト範囲（読み始め章+5万文字程度）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "texhnical_area": {
@@ -89,6 +106,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 44,  # 読者が読む開始章
         "read_end_chapter": 45,    # 読者が読む終了章
         "summary_max_chapter": 43, # 忘却あらすじの対象章（この章まで）
+        "context_range_mode3": 66, # モード3のコンテキスト範囲（読み始め章+5万文字程度、最終章）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     },
     "online_utyu": {
@@ -97,6 +115,7 @@ NOVEL_CATALOG = {
         "read_start_chapter": 23,  # 読者が読む開始章
         "read_end_chapter": 24,    # 読者が読む終了章
         "summary_max_chapter": 22, # 忘却あらすじの対象章（この章まで）
+        "context_range_mode3": 39, # モード3のコンテキスト範囲（読み始め章+5万文字程度）
         "summary": "[generate_forgetting_text.pyで500文字程度のあらすじを生成予定]"
     }
 }
@@ -1585,9 +1604,16 @@ elif st.session_state["authentication_status"]:
         current_experiment_number = st.session_state.user_number_b
 
     EXPERIMENT_MODE = int(current_experiment_number)
-    CURRENT_MODE = get_mode_config(EXPERIMENT_MODE)
+
+    # 現在の小説設定を取得（小説が選択されている場合）
+    current_novel_config = None
+    if st.session_state.novels_selection_completed and st.session_state.selected_novels:
+        current_novel_key_temp = st.session_state.selected_novels[st.session_state.current_novel_index]
+        current_novel_config = NOVEL_CATALOG.get(current_novel_key_temp)
+
+    CURRENT_MODE = get_mode_config(EXPERIMENT_MODE, current_novel_config)
     DEMO_MODE = (EXPERIMENT_MODE == 0)
-    START_PAGE = 0 if DEMO_MODE else X
+    START_PAGE = 0 if DEMO_MODE else (current_novel_config.get("read_start_chapter") if current_novel_config else X)
 
     # デバッグ用：実験モード情報をサイドバーに表示（開発時のみ）
     # 被験者には表示しないためコメントアウト
