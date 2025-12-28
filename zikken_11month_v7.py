@@ -1936,9 +1936,23 @@ elif st.session_state["authentication_status"]:
             read_sections = story_sections[start_page:]
 
         # ルビをHTML形式に変換して表示用テキストを作成
-        # 章タイトルもHTMLタグでラップして構造を明確にする
-        pages_ui_formatted = [f"<div style='font-weight:bold; margin-bottom:1em;'>【{sec['section']}章】 {sec['title']}</div>{convert_ruby_to_html(sec['text'])}"
-                              for sec in read_sections]
+        def format_page(sec):
+            # 章タイトルの処理（titleがsection番号のみの場合は重複を避ける）
+            section_num = sec['section']
+            title = sec['title']
+            if title == f"{section_num}章" or title == str(section_num):
+                # タイトルが章番号のみの場合
+                header = f"<div style='font-weight:bold; margin-bottom:1em;'>【{section_num}章】</div>"
+            else:
+                # タイトルがある場合
+                header = f"<div style='font-weight:bold; margin-bottom:1em;'>【{section_num}章】 {title}</div>"
+
+            # 本文のルビ変換
+            body = convert_ruby_to_html(sec['text'])
+
+            return header + body
+
+        pages_ui_formatted = [format_page(sec) for sec in read_sections]
         return pages_all, pages_ui_formatted, len(pages_ui_formatted), len(pages_all)
 
     # 現在選択されている小説のファイルと章情報を取得
@@ -2566,19 +2580,8 @@ elif st.session_state["authentication_status"]:
         )
 
         # 本文表示
-        st.markdown(
-            f"""
-            <div style="
-                padding:20px;border-radius:10px;
-                background-color:var(--background-color);
-                color:var(--text-color);
-                border:1px solid var(--secondary-background-color);
-                font-size:18px;line-height:1.8;white-space:pre-wrap;
-                min-height:500px;max-height:1000px;overflow-y:auto;">
-            {current_page_text}
-            </div>
-            """, unsafe_allow_html=True
-        )
+        html_content = f'''<div style="padding:20px;border-radius:10px;background-color:var(--background-color);color:var(--text-color);border:1px solid var(--secondary-background-color);font-size:18px;line-height:1.8;white-space:pre-wrap;min-height:500px;max-height:1000px;overflow-y:auto;">{current_page_text}</div>'''
+        st.markdown(html_content, unsafe_allow_html=True)
 
         # ページナビゲーションを本文の下に配置
         nav1, nav2, nav3 = st.columns([1, 3, 1])
