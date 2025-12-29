@@ -1764,31 +1764,10 @@ elif st.session_state["authentication_status"]:
                 # ファイルが存在しない場合はフォールバック
                 summary_text = current_novel.get("summary", "[あらすじが生成されていません。generate_forgetting_text.pyを実行してください]")
 
-        # 三国志と吸血鬼の場合はルビを適用
+        # 三国志と吸血鬼の場合はルビをHTML形式に変換
+        # （あらすじファイルに既にルビ記法《》が含まれている前提）
         if current_novel_key in ["sangoku_2", "ranpo"]:
-            # 本文からルビ辞書を抽出
-            with open(current_novel["file"], "r", encoding="utf-8") as f:
-                story_sections = json.load(f)
-            ruby_dict = extract_ruby_dict(story_sections)
-
-            # 三国志用の修正辞書（間違ったルビを正しいものに置き換える）
-            sangoku_correction = {
-                "漢室再興": "かんしつさいこう",
-                "場面": "ばめん",
-                "下": "くだ",
-                "末裔": "まつえい",
-                "高価": "こうか",
-                "思": "おも",
-                "荒": "あ"
-            }
-
-            # 三国志の場合のみ修正辞書を適用
-            correction_dict = sangoku_correction if current_novel_key == "sangoku_2" else None
-
-            # あらすじにルビ記法を適用
-            summary_text_with_ruby_notation = apply_ruby_to_text(summary_text, ruby_dict, correction_dict)
-            # HTML形式に変換
-            summary_text_with_ruby = convert_ruby_to_html(summary_text_with_ruby_notation)
+            summary_text_with_ruby = convert_ruby_to_html(summary_text)
         else:
             summary_text_with_ruby = summary_text
 
