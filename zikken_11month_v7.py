@@ -267,6 +267,61 @@ def convert_ruby_to_html(text: str) -> str:
     result = re.sub(pattern, replace_ruby, text)
     return result
 
+
+def extract_ruby_dict(story_sections: list) -> dict:
+    """
+    小説本文からルビ付き単語を抽出して辞書を作成
+
+    Args:
+        story_sections: 小説の全章データ
+
+    Returns:
+        {単語: 読み仮名} の辞書
+    """
+    ruby_dict = {}
+
+    for section in story_sections:
+        text = section.get('text', '')
+
+        # ｜記法のルビを抽出: ｜範囲《ルビ》
+        for match in re.finditer(r'｜([^《]+)《([^》]+)》', text):
+            word = match.group(1)
+            reading = match.group(2)
+            ruby_dict[word] = reading
+
+        # 通常記法のルビを抽出: 漢字《かんじ》
+        for match in re.finditer(r'([一-龠々〆ヵヶ]+)《([^》]+)》', text):
+            word = match.group(1)
+            reading = match.group(2)
+            ruby_dict[word] = reading
+
+    return ruby_dict
+
+
+def apply_ruby_to_text(text: str, ruby_dict: dict) -> str:
+    """
+    テキストにルビ辞書を適用してルビ記法を追加
+
+    Args:
+        text: 対象テキスト
+        ruby_dict: {単語: 読み仮名} の辞書
+
+    Returns:
+        ルビ記法が追加されたテキスト
+    """
+    # 長い単語から順に処理（部分一致を避けるため）
+    sorted_words = sorted(ruby_dict.keys(), key=len, reverse=True)
+
+    for word in sorted_words:
+        reading = ruby_dict[word]
+        # すでにルビ記法がある場合はスキップ
+        if f'{word}《{reading}》' in text:
+            continue
+        # 単語を見つけてルビ記法を追加
+        text = text.replace(word, f'{word}《{reading}》')
+
+    return text
+
 # =================================================
 #                🔸  ロガー関連
 # =================================================
@@ -1675,6 +1730,22 @@ elif st.session_state["authentication_status"]:
         st.markdown(f"### 『{current_novel['title']}』")
         st.markdown("システムを使用する前に、以下の要約をお読みください")
 
+        # ルビのスタイル設定（三国志と吸血鬼用）
+        if current_novel_key in ["sangoku_2", "ranpo"]:
+            st.markdown(
+                """
+                <style>
+                    /* ルビのスタイル設定 */
+                    ruby {
+                        white-space: nowrap;
+                    }
+                    rt {
+                        font-size: 0.6em;
+                    }
+                </style>
+                """, unsafe_allow_html=True
+            )
+
         # デモモードかどうかで表示テキストを切り替え
         if int(st.session_state.user_number) == 0:
             summary_text = "これは練習です。"
@@ -1688,6 +1759,18 @@ elif st.session_state["authentication_status"]:
                 # ファイルが存在しない場合はフォールバック
                 summary_text = current_novel.get("summary", "[あらすじが生成されていません。generate_forgetting_text.pyを実行してください]")
 
+        # 三国志と吸血鬼の場合はルビを適用
+        if current_novel_key in ["sangoku_2", "ranpo"]:
+            # 本文からルビ辞書を抽出
+            story_sections = load_story(demo_mode=False, novel_file=current_novel["file"])
+            ruby_dict = extract_ruby_dict(story_sections)
+            # あらすじにルビ記法を適用
+            summary_text_with_ruby_notation = apply_ruby_to_text(summary_text, ruby_dict)
+            # HTML形式に変換
+            summary_text_with_ruby = convert_ruby_to_html(summary_text_with_ruby_notation)
+        else:
+            summary_text_with_ruby = summary_text
+
         st.markdown(
             f"""
             <div style="
@@ -1697,7 +1780,7 @@ elif st.session_state["authentication_status"]:
                 border:1px solid var(--secondary-background-color);
                 font-size:16px;line-height:1.8;white-space:pre-wrap;
                 max-height:500px;overflow-y:auto;">
-            {summary_text}
+            {summary_text_with_ruby}
             </div>
             """, unsafe_allow_html=True
         )
