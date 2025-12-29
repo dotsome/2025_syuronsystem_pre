@@ -1733,7 +1733,7 @@ elif st.session_state["authentication_status"]:
 
         st.title(f"📚 物語の要約 ({st.session_state.current_novel_index + 1}/2作品目)")
         st.markdown(f"### 『{current_novel['title']}』")
-        st.markdown("システムを使用する前に、以下の要約をお読みください")
+        st.markdown("「物語の要約」を読む前に，まず実験ナンバーに対応するモードのマニュアルを読んでください．詳細はhttps://www.notion.so/leelabz/2d7d5612f79380008b0ffe3368273d1a?source=copy_link に記載されています．その後，以下の要約をお読みください")
 
         # ルビのスタイル設定（三国志と吸血鬼用）
         if current_novel_key in ["sangoku_2", "ranpo"]:
