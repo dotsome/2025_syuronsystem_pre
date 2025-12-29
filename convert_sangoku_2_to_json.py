@@ -28,7 +28,7 @@ def parse_sangoku_2_with_ruby(filepath):
     current_text = []
 
     in_header = True
-    section_counter = 2  # 最初のセクション番号（既存の sangoku_text.json に合わせる）
+    section_counter = 1  # 最初のセクション番号
 
     for line in lines:
         line = line.strip()
