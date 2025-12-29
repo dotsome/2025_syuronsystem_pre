@@ -2527,8 +2527,9 @@ elif st.session_state["authentication_status"]:
         # pages_uiは表示用のフォーマット済みテキスト
         current_page_text = pages_ui[st.session_state.ui_page]
 
-        # 現在の章番号を取得
-        current_chapter_num = pages_all[real_page_index]["section"] if real_page_index < len(pages_all) else None
+        # 現在の章番号を取得（文字列から整数に変換）
+        current_chapter_num_str = pages_all[real_page_index]["section"] if real_page_index < len(pages_all) else None
+        current_chapter_num = int(current_chapter_num_str) if current_chapter_num_str else None
 
         # 現在の章番号を更新
         st.session_state.current_chapter = current_chapter_num
@@ -2713,16 +2714,6 @@ elif st.session_state["authentication_status"]:
 
         # 章読了アンケート表示（常時表示・未回答の場合のみ）
         st.markdown("---")
-
-        # デバッグ情報を表示
-        st.info(f"""🔍 デバッグ情報:
-- ui_page: {st.session_state.ui_page}
-- START_PAGE: {START_PAGE}
-- real_page_index: {real_page_index}
-- current_chapter_num: {current_chapter_num}
-- pages_all[{real_page_index}]['section']: {pages_all[real_page_index]['section'] if real_page_index < len(pages_all) else 'N/A'}
-- evaluated_chapters: {st.session_state.evaluated_chapters}""")
-
         if current_chapter_num is not None:
             chapter_id = f"chapter_{current_chapter_num}"
             chapter_title = f"{current_chapter_num}章"
