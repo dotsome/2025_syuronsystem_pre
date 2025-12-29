@@ -2942,7 +2942,7 @@ elif st.session_state["authentication_status"]:
 
                 if both_downloads_completed:
                     st.markdown("---")
-                    st.success("✅ 1作品目の実験が完了しました。2作品目に進んでください。")
+                    st.success("✅ 1作品目の実験が完了しました。Google formの2ページ目にダウンロードした2つのファイルを添付し．事後アンケートに回答してください．その後，2作品目へ進むを押してください．")
                     if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
                         # 2作品目に進む
                         st.session_state.current_novel_index = 1
