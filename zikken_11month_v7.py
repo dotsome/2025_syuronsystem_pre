@@ -1771,19 +1771,35 @@ elif st.session_state["authentication_status"]:
         else:
             summary_text_with_ruby = summary_text
 
-        st.markdown(
-            f"""
-            <div style="
-                padding:20px;border-radius:10px;
-                background-color:var(--background-color);
-                color:var(--text-color);
-                border:1px solid var(--secondary-background-color);
-                font-size:16px;line-height:1.8;white-space:pre-wrap;
-                max-height:500px;overflow-y:auto;">
-            {summary_text_with_ruby}
-            </div>
-            """, unsafe_allow_html=True
-        )
+        st.markdown(f"""<style>
+.summary-box {{
+    padding: 20px;
+    border-radius: 10px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-background-color);
+    font-size: 16px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    max-height: 500px;
+    overflow-y: auto;
+}}
+.summary-box::-webkit-scrollbar {{
+    width: 12px;
+}}
+.summary-box::-webkit-scrollbar-track {{
+    background: #f1f1f1;
+    border-radius: 10px;
+}}
+.summary-box::-webkit-scrollbar-thumb {{
+    background: #888;
+    border-radius: 10px;
+}}
+.summary-box::-webkit-scrollbar-thumb:hover {{
+    background: #555;
+}}
+</style>
+<div class="summary-box">{summary_text_with_ruby}</div>""", unsafe_allow_html=True)
 
         st.markdown("---")
 
