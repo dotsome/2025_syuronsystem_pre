@@ -1762,7 +1762,8 @@ elif st.session_state["authentication_status"]:
         # 三国志と吸血鬼の場合はルビを適用
         if current_novel_key in ["sangoku_2", "ranpo"]:
             # 本文からルビ辞書を抽出
-            story_sections = load_story(demo_mode=False, novel_file=current_novel["file"])
+            with open(current_novel["file"], "r", encoding="utf-8") as f:
+                story_sections = json.load(f)
             ruby_dict = extract_ruby_dict(story_sections)
             # あらすじにルビ記法を適用
             summary_text_with_ruby_notation = apply_ruby_to_text(summary_text, ruby_dict)
