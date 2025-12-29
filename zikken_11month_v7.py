@@ -1650,7 +1650,7 @@ elif st.session_state["authentication_status"]:
 
         with st.form("profile_form"):
             nickname = st.text_input("ニックネーム",
-                                     placeholder="例: Taro",
+                                     placeholder="例: Tanakataro",
                                      help="ファイル名に使用されます")
             experiment_number_a = st.text_input("実験ナンバーA（1作品目）",
                                                 placeholder="指定された1~5の半角数字を入力してください",
