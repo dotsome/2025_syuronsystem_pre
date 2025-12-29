@@ -2633,7 +2633,7 @@ elif st.session_state["authentication_status"]:
         # 現在の章番号を更新
         st.session_state.current_chapter = current_chapter_num
 
-        # ルビのスタイル設定（一度だけ定義）
+        # ルビと本文のスタイル設定（一度だけ定義）
         st.markdown(
             """
             <style>
@@ -2644,12 +2644,40 @@ elif st.session_state["authentication_status"]:
                 rt {
                     font-size: 0.5em;  /* ルビ文字のサイズ */
                 }
+                /* 本文ボックスのスタイル */
+                .novel-content-box {
+                    padding: 20px;
+                    border-radius: 10px;
+                    background-color: var(--background-color);
+                    color: var(--text-color);
+                    border: 1px solid var(--secondary-background-color);
+                    font-size: 18px;
+                    line-height: 1.8;
+                    white-space: pre-wrap;
+                    min-height: 500px;
+                    max-height: 1000px;
+                    overflow-y: auto;
+                }
+                .novel-content-box::-webkit-scrollbar {
+                    width: 12px;
+                }
+                .novel-content-box::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 10px;
+                }
+                .novel-content-box::-webkit-scrollbar-thumb {
+                    background: #888;
+                    border-radius: 10px;
+                }
+                .novel-content-box::-webkit-scrollbar-thumb:hover {
+                    background: #555;
+                }
             </style>
             """, unsafe_allow_html=True
         )
 
         # 本文表示
-        html_content = f'''<div style="padding:20px;border-radius:10px;background-color:var(--background-color);color:var(--text-color);border:1px solid var(--secondary-background-color);font-size:18px;line-height:1.8;white-space:pre-wrap;min-height:500px;max-height:1000px;overflow-y:auto;">{current_page_text}</div>'''
+        html_content = f'<div class="novel-content-box">{current_page_text}</div>'
         st.markdown(html_content, unsafe_allow_html=True)
 
         # ページナビゲーションを本文の下に配置
