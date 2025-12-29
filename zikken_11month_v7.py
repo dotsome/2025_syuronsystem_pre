@@ -1804,7 +1804,8 @@ elif st.session_state["authentication_status"]:
 
     CURRENT_MODE = get_mode_config(EXPERIMENT_MODE, current_novel_config)
     DEMO_MODE = (EXPERIMENT_MODE == 0)
-    START_PAGE = 0 if DEMO_MODE else (current_novel_config.get("read_start_chapter") if current_novel_config else X)
+    # START_PAGEは0ベースのインデックスなので、章番号から1を引く
+    START_PAGE = 0 if DEMO_MODE else (current_novel_config.get("read_start_chapter") - 1 if current_novel_config else 0)
 
     # デバッグ用：実験モード情報をサイドバーに表示（開発時のみ）
     # 被験者には表示しないためコメントアウト
@@ -2712,6 +2713,16 @@ elif st.session_state["authentication_status"]:
 
         # 章読了アンケート表示（常時表示・未回答の場合のみ）
         st.markdown("---")
+
+        # デバッグ情報を表示
+        st.info(f"""🔍 デバッグ情報:
+- ui_page: {st.session_state.ui_page}
+- START_PAGE: {START_PAGE}
+- real_page_index: {real_page_index}
+- current_chapter_num: {current_chapter_num}
+- pages_all[{real_page_index}]['section']: {pages_all[real_page_index]['section'] if real_page_index < len(pages_all) else 'N/A'}
+- evaluated_chapters: {st.session_state.evaluated_chapters}""")
+
         if current_chapter_num is not None:
             chapter_id = f"chapter_{current_chapter_num}"
             chapter_title = f"{current_chapter_num}章"
