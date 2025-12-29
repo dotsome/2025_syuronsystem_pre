@@ -1782,21 +1782,26 @@ elif st.session_state["authentication_status"]:
     line-height: 1.8;
     white-space: pre-wrap;
     max-height: 500px;
-    overflow-y: auto;
+    overflow-y: scroll !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
 }}
 .summary-box::-webkit-scrollbar {{
-    width: 12px;
+    width: 12px !important;
+    -webkit-appearance: none !important;
+    display: block !important;
 }}
 .summary-box::-webkit-scrollbar-track {{
-    background: #f1f1f1;
+    background: #f1f1f1 !important;
     border-radius: 10px;
 }}
 .summary-box::-webkit-scrollbar-thumb {{
-    background: #888;
+    background: #888 !important;
     border-radius: 10px;
+    border: 2px solid #f1f1f1;
 }}
 .summary-box::-webkit-scrollbar-thumb:hover {{
-    background: #555;
+    background: #555 !important;
 }}
 </style>
 <div class="summary-box">{summary_text_with_ruby}</div>""", unsafe_allow_html=True)
@@ -2656,21 +2661,26 @@ elif st.session_state["authentication_status"]:
                     white-space: pre-wrap;
                     min-height: 500px;
                     max-height: 1000px;
-                    overflow-y: auto;
+                    overflow-y: scroll !important;
+                    scrollbar-width: thin !important;
+                    scrollbar-color: #888 #f1f1f1 !important;
                 }
                 .novel-content-box::-webkit-scrollbar {
-                    width: 12px;
+                    width: 12px !important;
+                    -webkit-appearance: none !important;
+                    display: block !important;
                 }
                 .novel-content-box::-webkit-scrollbar-track {
-                    background: #f1f1f1;
+                    background: #f1f1f1 !important;
                     border-radius: 10px;
                 }
                 .novel-content-box::-webkit-scrollbar-thumb {
-                    background: #888;
+                    background: #888 !important;
                     border-radius: 10px;
+                    border: 2px solid #f1f1f1;
                 }
                 .novel-content-box::-webkit-scrollbar-thumb:hover {
-                    background: #555;
+                    background: #555 !important;
                 }
             </style>
             """, unsafe_allow_html=True
