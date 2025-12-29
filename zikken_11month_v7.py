@@ -2973,7 +2973,7 @@ elif st.session_state["authentication_status"]:
 
                 if both_downloads_completed:
                     st.markdown("---")
-                    st.success(" 2作品すべての実験が完了しました！ Google formの2ページ目にダウンロードした4つのファイルをそれぞれ添付し、3ページ目の終了後アンケートに回答してください。")
+                    st.success(" 2作品すべての実験が完了しました！ Google formの4ページ目にダウンロードした2つのファイルをそれぞれ添付し、5ページ目の終了後アンケートに回答してください。")
 
     # =================================================
     #               ユーザー入力処理
