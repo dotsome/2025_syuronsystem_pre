@@ -298,17 +298,22 @@ def extract_ruby_dict(story_sections: list) -> dict:
     return ruby_dict
 
 
-def apply_ruby_to_text(text: str, ruby_dict: dict) -> str:
+def apply_ruby_to_text(text: str, ruby_dict: dict, correction_dict: dict = None) -> str:
     """
     テキストにルビ辞書を適用してルビ記法を追加
 
     Args:
         text: 対象テキスト
         ruby_dict: {単語: 読み仮名} の辞書
+        correction_dict: 修正用のルビ辞書（優先度高）
 
     Returns:
         ルビ記法が追加されたテキスト
     """
+    # 修正用辞書があれば、ruby_dictを上書き
+    if correction_dict:
+        ruby_dict = {**ruby_dict, **correction_dict}
+
     # 長い単語から順に処理（部分一致を避けるため）
     sorted_words = sorted(ruby_dict.keys(), key=len, reverse=True)
 
@@ -1765,8 +1770,23 @@ elif st.session_state["authentication_status"]:
             with open(current_novel["file"], "r", encoding="utf-8") as f:
                 story_sections = json.load(f)
             ruby_dict = extract_ruby_dict(story_sections)
+
+            # 三国志用の修正辞書（間違ったルビを正しいものに置き換える）
+            sangoku_correction = {
+                "漢室再興": "かんしつさいこう",
+                "場面": "ばめん",
+                "下": "くだ",
+                "末裔": "まつえい",
+                "高価": "こうか",
+                "思": "おも",
+                "荒": "あ"
+            }
+
+            # 三国志の場合のみ修正辞書を適用
+            correction_dict = sangoku_correction if current_novel_key == "sangoku_2" else None
+
             # あらすじにルビ記法を適用
-            summary_text_with_ruby_notation = apply_ruby_to_text(summary_text, ruby_dict)
+            summary_text_with_ruby_notation = apply_ruby_to_text(summary_text, ruby_dict, correction_dict)
             # HTML形式に変換
             summary_text_with_ruby = convert_ruby_to_html(summary_text_with_ruby_notation)
         else:
