@@ -131,20 +131,20 @@ ANSWER_EVALUATION_QUESTIONS = [
     {
         "id": "answer_q1",
         "text": "提示された回答テキストは、忘れていた内容を思い出すのにどの程度役立ちましたか？",
-        "scale_min": "全く役立たなかった",
-        "scale_max": "非常に役立った"
+        "scale_min": "全く役立たなかった:1",
+        "scale_max": "非常に役立った:7"
     },
     {
         "id": "answer_q2",
         "text": "提示された回答テキストの情報量はどうでしたか？",
-        "scale_min": "非常に少なかった",
-        "scale_max": "非常に多かった"
+        "scale_min": "非常に少なかった:1",
+        "scale_max": "非常に多かった:7"
     },
     {
         "id": "answer_q3",
         "text": "提示された回答テキストに含まれる用語や表現は理解しやすかったですか？",
-        "scale_min": "全く理解できない",
-        "scale_max": "非常に理解しやすい"
+        "scale_min": "全く理解できない:1",
+        "scale_max": "非常に理解しやすい:7"
     }
 ]
 
@@ -153,32 +153,32 @@ GRAPH_EVALUATION_QUESTIONS = [
     {
         "id": "graph_q1",
         "text": "提示された人物関係図は、人物同士の関係を理解するのにどの程度役立ちましたか？",
-        "scale_min": "全く役立たなかった",
-        "scale_max": "非常に役立った"
+        "scale_min": "全く役立たなかった:1",
+        "scale_max": "非常に役立った:7"
     },
     {
         "id": "graph_q2",
         "text": "人物関係図に表示されている人物の数はどうでしたか？",
-        "scale_min": "非常に少なかった",
-        "scale_max": "非常に多かった"
+        "scale_min": "非常に少なかった:1",
+        "scale_max": "非常に多かった:7"
     },
     {
         "id": "graph_q3",
         "text": "人物関係図に表示されている関係性のラベル（矢印の説明文）は、質問内容に対して適切でしたか？",
-        "scale_min": "全く適切でない",
-        "scale_max": "非常に適切"
+        "scale_min": "全く適切でない:1",
+        "scale_max": "非常に適切:7"
     },
     {
         "id": "graph_q4",
         "text": "人物関係図の視認性はどうでしたか？",
-        "scale_min": "非常に見にくい",
-        "scale_max": "非常に見やすい"
+        "scale_min": "非常に見にくい:1",
+        "scale_max": "非常に見やすい:7"
     },
     {
         "id": "graph_q5",
         "text": "人物関係図に表示されている情報量はどうでしたか？",
-        "scale_min": "非常に少なかった",
-        "scale_max": "非常に多かった"
+        "scale_min": "非常に少なかった:1",
+        "scale_max": "非常に多かった:7"
     }
 ]
 
@@ -186,8 +186,8 @@ GRAPH_EVALUATION_QUESTIONS = [
 COMPARISON_EVALUATION_QUESTION = {
     "id": "comparison_q1",
     "text": "内容を思い出す上で、「回答テキスト」と「人物関係図」のどちらがより役立ちましたか？",
-    "scale_min": "回答テキストの方がはるかに役立った",
-    "scale_max": "人物関係図の方がはるかに役立った"
+    "scale_min": "回答テキストの方がはるかに役立った:1",
+    "scale_max": "人物関係図の方がはるかに役立った:7"
 }
 
 # 章読了時の評価設問
@@ -195,8 +195,8 @@ COMPARISON_EVALUATION_QUESTION = {
 CHAPTER_END_QA_QUESTION = {
     "id": "chapter_spoiler",
     "text": "回答の内容に、まだ読んでいない先の展開（ネタバレ）がどの程度含まれていましたか？",
-    "scale_min": "全く含まれていなかった",
-    "scale_max": "明らかに含まれていた"
+    "scale_min": "全く含まれていなかった:1",
+    "scale_max": "明らかに含まれていた:7"
 }
 
 # 全モード共通の章読了時評価設問
@@ -204,33 +204,33 @@ CHAPTER_END_QUESTIONS = [
     {
         "id": "chapter_understanding",
         "text": "この章の物語の状況（誰が何をしているか）をどの程度理解できましたか？",
-        "scale_min": "全く理解できなかった",
-        "scale_max": "完全に理解できた"
+        "scale_min": "全く理解できなかった:1",
+        "scale_max": "完全に理解できた:7"
     },
     {
         "id": "chapter_relationships",
         "text": "登場人物同士の関係性をどの程度把握できましたか？",
-        "scale_min": "全く把握できなかった",
-        "scale_max": "完全に把握できた"
+        "scale_min": "全く把握できなかった:1",
+        "scale_max": "完全に把握できた:7"
     },
     {
         "id": "chapter_cognitive_load",
         "text": "この章を読んで内容を理解するために、どのくらい頭を使う負担を感じましたか？",
-        "scale_min": "全く負担なし",
-        "scale_max": "非常に高い負担",
+        "scale_min": "全く負担なし:1",
+        "scale_max": "非常に高い負担:9",
         "scale_type": "9point"  # 9段階評価
     },
     {
         "id": "chapter_anxiety",
         "text": "この章を読んでいる間、「重要な情報を忘れているのではないか」という不安をどの程度感じましたか？",
-        "scale_min": "全く感じなかった",
-        "scale_max": "非常に強く感じた"
+        "scale_min": "全く感じなかった:1",
+        "scale_max": "非常に強く感じた:7"
     },
     {
         "id": "chapter_immersion",
         "text": "この章の内容にどの程度没入できましたか？",
-        "scale_min": "全く没入できなかった",
-        "scale_max": "非常に没入できた"
+        "scale_min": "全く没入できなかった:1",
+        "scale_max": "非常に没入できた:7"
     }
 ]
 
