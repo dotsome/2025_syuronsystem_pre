@@ -2465,10 +2465,10 @@ elif st.session_state["authentication_status"]:
 - 実在しない人物を含めない
 
 ✅ 正しい例:
-- center_persons: ["ミナ"]  （複数の場合: ["ミナ", "アリオス"]）
+- center_persons: ["ハナコ"]  （複数の場合: ["ハナコ", "タロウ"]）
 - relationships: [
-    {{"source": "ミナ", "target": "アリオス", "relation_type": "bidirectional", "label": "仲間", "group": "勇者パーティー"}},
-    {{"source": "ミナ", "target": "レイン", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
+    {{"source": "ハナコ", "target": "タロウ", "relation_type": "bidirectional", "label": "仲間", "group": "同級生"}},
+    {{"source": "ハナコ", "target": "ジロウ", "relation_type": "bidirectional", "label": "元仲間", "group": ""}}
   ]
 
 要件:
