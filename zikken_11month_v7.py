@@ -2946,6 +2946,7 @@ elif st.session_state["authentication_status"]:
                     if st.button("📖 2作品目へ進む", type="primary", use_container_width=True):
                         # 2作品目に進む
                         st.session_state.current_novel_index = 1
+                        st.session_state.user_number = st.session_state.user_number_b  # 2作品目の実験ナンバーに更新
                         st.session_state.chat_log_downloaded = False  # リセット
                         st.session_state.evaluation_csv_downloaded = False  # リセット
                         st.session_state.summary_read = False
