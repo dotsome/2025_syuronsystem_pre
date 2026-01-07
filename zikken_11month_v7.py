@@ -1953,6 +1953,13 @@ elif st.session_state["authentication_status"]:
     logger.info(f"モード設定: use_graph={CURRENT_MODE['use_graph']}, use_qa={CURRENT_MODE['use_qa']}, context_range={CURRENT_MODE['context_range']}, graph_type={CURRENT_MODE['graph_type']}")
     logger.info(f"開始ページ: {START_PAGE} (X={X}, Y={Y})")
 
+    # 選択された小説情報を記録
+    if st.session_state.novels_selection_completed and st.session_state.selected_novels:
+        selected_novel_keys = st.session_state.selected_novels
+        selected_novel_titles = [NOVEL_CATALOG[key]["title"] for key in selected_novel_keys]
+        logger.info(f"選択された作品: {selected_novel_keys} ({', '.join(selected_novel_titles)})")
+        logger.info(f"現在進行中: {st.session_state.current_novel_index + 1}作品目 - {NOVEL_CATALOG[selected_novel_keys[st.session_state.current_novel_index]]['title']}")
+
     # Google Sheets QAロガーの初期化（Streamlit Cloudで有効）
     sheets_qa_logger = None
     if "google_spreadsheet_key" in st.secrets:
