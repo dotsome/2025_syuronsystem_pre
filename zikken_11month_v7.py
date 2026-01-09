@@ -1970,11 +1970,11 @@ elif st.session_state["authentication_status"]:
 
     # Google Driveアップローダーの初期化（Streamlit Cloudで有効）
     drive_uploader = None
-    if "gcp_service_account" in st.secrets:
+    if "gcp_service_account" in st.secrets or "google_drive_oauth" in st.secrets:
         drive_uploader = GoogleDriveUploader()
         logger.info(f"✅ Google Drive Uploader 初期化完了 (folder_id: {drive_uploader.folder_id if drive_uploader.folder_id else 'None'})")
     else:
-        logger.warning("⚠️ gcp_service_account が設定されていません")
+        logger.warning("⚠️ gcp_service_account も google_drive_oauth も設定されていません")
 
     # =================================================
     #          OpenAI クライアント初期化
