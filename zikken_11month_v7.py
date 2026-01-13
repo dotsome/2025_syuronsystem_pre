@@ -2636,6 +2636,12 @@ elif st.session_state["authentication_status"]:
         st.session_state.page = real_page_index
 
         # pages_uiは表示用のフォーマット済みテキスト
+        # ui_pageが範囲外の場合は0にリセット
+        if st.session_state.ui_page >= len(pages_ui):
+            logger.warning(f"ui_page ({st.session_state.ui_page}) が範囲外です。0にリセットします。(pages_ui length: {len(pages_ui)})")
+            st.session_state.ui_page = 0
+            st.rerun()
+
         current_page_text = pages_ui[st.session_state.ui_page]
 
         # 現在の章番号を取得（文字列から整数に変換）
